@@ -1,0 +1,34 @@
+# ------------------------------------------------------------------
+# Trading bot configuration. Edit these by hand; no code changes needed.
+# Strategy: RSI(2) mean reversion on liquid ETFs, long-only, no margin.
+# ------------------------------------------------------------------
+
+# Broad, liquid ETFs. Tight spreads, diversified. Keep this list short.
+universe:
+  - SPY   # S&P 500
+  - QQQ   # Nasdaq 100
+  - IWM   # Russell 2000 (small caps)
+  - DIA   # Dow 30
+  - EFA   # Developed intl
+  - EEM   # Emerging markets
+
+strategy:
+  rsi_period: 2        # Connors-style short RSI
+  rsi_entry: 10.0      # buy when RSI(2) below this (deeply oversold)
+  rsi_exit: 60.0       # sell when RSI(2) recovers above this
+  trend_sma: 200       # only buy when price is ABOVE this long-term avg
+  exit_sma: 5          # also sell if price closes back above this short avg
+  max_hold_days: 10    # time-stop: exit a position held this many days
+
+risk:
+  max_positions: 3         # max concurrent holdings
+  max_position_pct: 0.20   # cap each position at this fraction of equity
+  cash_buffer_pct: 0.25    # always keep at least this fraction of equity in cash
+  stop_loss_pct: 0.08      # hard stop: exit if down this much from entry
+  daily_loss_halt_pct: 0.04  # if equity drops this much on the day, no new buys
+  use_margin: false        # NEVER borrow. Leave false.
+
+execution:
+  order_type: market       # market orders on liquid ETFs
+  time_in_force: day
+  lookback_days: 400       # history pulled for indicators (need > trend_sma)

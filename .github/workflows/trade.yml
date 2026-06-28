@@ -1,0 +1,36 @@
+name: trade
+
+on:
+  schedule:
+    # 19:30 UTC, Mon-Fri. That's ~30 min before the US close during summer
+    # (EDT) and ~90 min before during winter (EST). GitHub may delay cron runs
+    # by a few minutes; the bot checks the market clock and no-ops if closed.
+    - cron: "30 19 * * 1-5"
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+concurrency:
+  group: trade
+  cancel-in-progress: false
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Run trading cycle
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+        run: python run.py
