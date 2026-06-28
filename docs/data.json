@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-06-28T23:53:17+00:00",
+  "market_open": false,
+  "next_open": "2026-06-29T09:30:00-04:00",
+  "next_close": "2026-06-29T16:00:00-04:00",
+  "account": {
+    "equity": 10000.0,
+    "cash": 10000.0,
+    "buying_power": 40000.0,
+    "portfolio_value": 10000.0,
+    "last_equity": 10000.0,
+    "day_pl": 0.0,
+    "day_pl_pct": 0.0,
+    "total_pl": 0.0,
+    "total_pl_pct": 0.0
+  },
+  "positions": [],
+  "orders": [],
+  "equity_curve": [
+    {
+      "t": "2026-06-26",
+      "equity": 10000.0
+    },
+    {
+      "t": "2026-06-27",
+      "equity": 10000.0
+    }
+  ],
+  "strategy": {
+    "name": "RSI(2) mean reversion + 200d trend filter",
+    "universe": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "DIA",
+      "EFA",
+      "EEM"
+    ],
+    "rsi_entry": 10.0,
+    "rsi_exit": 60.0,
+    "trend_sma": 200
+  },
+  "risk": {
+    "max_positions": 3,
+    "max_position_pct": 0.2,
+    "cash_buffer_pct": 0.25,
+    "stop_loss_pct": 0.08,
+    "daily_loss_halt_pct": 0.04
+  }
+}

@@ -63,6 +63,27 @@ fine; adjust the cron in the workflow if you want it tighter to the close.
 **Data:** uses Alpaca's free IEX feed for daily bars — sufficient for this daily
 strategy. No paid data subscription required.
 
+## Dashboard (GitHub Pages, free)
+
+A clean static dashboard shows equity, day & total P/L, open positions, recent
+trades, and your strategy/risk settings.
+
+**How it works:** each CI run writes `docs/data.json` (account snapshot + equity
+history from Alpaca) and commits it back to the repo. `docs/index.html` reads that
+JSON — no backend, no build step. The page auto-refreshes every 60s while open.
+
+**Enable it (one-time):**
+1. Push the repo (the `docs/` folder must be included).
+2. Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+   then **Branch: `main`, folder: `/docs`**, Save.
+3. Your dashboard appears at `https://<your-username>.github.io/<repo-name>/`.
+
+The workflow already has `permissions: contents: write` so it can commit the data
+file; commits use `[skip ci]` so they don't re-trigger the bot.
+
+Generate the data locally anytime: `python run.py --dry-run` (writes `docs/data.json`),
+then open `docs/index.html` (serve it, e.g. `python -m http.server --directory docs`).
+
 ## Tuning
 
 Everything tunable lives in `config.yaml` — universe, RSI thresholds, trend filter,
@@ -81,6 +102,10 @@ bot/
   strategy.py          buy/sell/hold signal logic
   risk.py              pure sizing & guardrail math (unit-tested)
   trader.py            orchestration: state -> signals -> orders
+  report.py            builds docs/data.json for the dashboard
+docs/
+  index.html           static dashboard (GitHub Pages)
+  data.json            account snapshot, refreshed each CI run
 tests/                 unit tests (no network)
 .github/workflows/     scheduled CI run
 ```

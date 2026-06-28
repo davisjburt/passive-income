@@ -12,6 +12,7 @@ import logging
 import sys
 
 from bot.config import load_config
+from bot.report import write_report
 from bot.trader import run_cycle
 
 
@@ -21,6 +22,11 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Evaluate signals and log intended orders without submitting them.",
+    )
+    parser.add_argument(
+        "--no-report",
+        action="store_true",
+        help="Skip writing the dashboard data file (docs/data.json).",
     )
     args = parser.parse_args()
 
@@ -39,6 +45,13 @@ def main() -> int:
     except Exception:
         logging.getLogger("bot").exception("Cycle failed")
         return 1
+
+    # Always refresh the dashboard snapshot, even on a closed market or dry run.
+    if not args.no_report:
+        try:
+            write_report(cfg)
+        except Exception:
+            logging.getLogger("bot").exception("Report generation failed")
 
     actions = summary.get("actions", [])
     print("\n--- Summary ---")
