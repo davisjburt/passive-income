@@ -1,21 +1,42 @@
 {
-  "generated_at": "2026-06-29T15:01:43+00:00",
-  "market_open": true,
+  "generated_at": "2026-06-29T21:08:54+00:00",
+  "market_open": false,
   "next_open": "2026-06-30T09:30:00-04:00",
-  "next_close": "2026-06-29T16:00:00-04:00",
+  "next_close": "2026-06-30T16:00:00-04:00",
   "account": {
-    "equity": 10000.0,
-    "cash": 10000.0,
-    "buying_power": 40000.0,
-    "portfolio_value": 10000.0,
+    "equity": 9985.98,
+    "cash": 10020.98,
+    "buying_power": 36883.92,
+    "portfolio_value": 9985.98,
     "last_equity": 10000.0,
-    "day_pl": 0.0,
-    "day_pl_pct": 0.0,
-    "total_pl": 0.0,
-    "total_pl_pct": 0.0
+    "day_pl": -14.02,
+    "day_pl_pct": -0.14,
+    "total_pl": -14.02,
+    "total_pl_pct": -0.14
   },
-  "positions": [],
-  "orders": [],
+  "positions": [
+    {
+      "symbol": "CLF260731P00008000",
+      "qty": -1.0,
+      "avg_entry": 0.21,
+      "current_price": 0.35,
+      "market_value": -35.0,
+      "unrealized_pl": -14.0,
+      "unrealized_plpc": -66.667
+    }
+  ],
+  "orders": [
+    {
+      "symbol": "CLF260731P00008000",
+      "side": "sell",
+      "qty": 1.0,
+      "notional": null,
+      "status": "filled",
+      "submitted_at": "2026-06-29T15:15:44.403341+00:00",
+      "filled_at": "2026-06-29T16:37:03.845517+00:00",
+      "filled_avg_price": 0.21
+    }
+  ],
   "equity_curve": [
     {
       "t": "2026-06-26",
