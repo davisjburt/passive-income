@@ -55,7 +55,10 @@
       .wrap {
         max-width: 880px;
         margin: 0 auto;
-        padding: 32px 20px 64px;
+        /* Respect the iPhone status bar / Dynamic Island / home indicator
+           when installed as a standalone PWA (viewport-fit=cover). */
+        padding: calc(32px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
+          calc(64px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
       }
       header {
         display: flex;
