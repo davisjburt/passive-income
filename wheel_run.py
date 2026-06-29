@@ -39,8 +39,14 @@ def main() -> int:
 
     print("\n--- Wheel summary ---")
     print(f"Exposure: {summary.get('exposure_pct', 0)}% of equity")
-    for a in summary.get("actions", []) or ["(no orders)"]:
+    print("Orders:")
+    for a in summary.get("actions", []) or ["(none)"]:
         print(f"  - {a}")
+    skipped = summary.get("skipped", [])
+    if skipped:
+        print("Skipped (why nothing fired):")
+        for sline in skipped:
+            print(f"  - {sline}")
     return 0
 
 

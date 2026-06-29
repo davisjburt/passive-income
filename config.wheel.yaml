@@ -7,16 +7,19 @@
 
 enabled: true
 
-# Fundamentally sound, liquid names with tight option spreads.
+# Lower-priced, liquid, optionable names so one contract (strike x 100) fits a
+# smaller account. Still established companies with tight option spreads.
+# Approx prices: F ~$12, T ~$22, KMI ~$20, INTC ~$25, PFE ~$26, BAC ~$42,
+# CSCO ~$50, VZ ~$43 (verify live).
 universe:
-  - SPY
-  - QQQ
-  - IWM
-  - AAPL
-  - MSFT
-  - JNJ
-  - KO
-  - XLP
+  - F      # Ford
+  - T      # AT&T
+  - KMI    # Kinder Morgan
+  - INTC   # Intel
+  - PFE    # Pfizer
+  - BAC    # Bank of America
+  - CSCO   # Cisco
+  - VZ     # Verizon
 
 max_wheel_tickers: 5          # 3-6 simultaneous wheel names (concentration guard)
 per_stock_cap_pct: 0.08       # <=5-10% of equity per underlying when fully assigned
