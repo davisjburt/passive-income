@@ -1,9 +1,12 @@
 # ------------------------------------------------------------------
 # Trading bot configuration. Edit these by hand; no code changes needed.
 # Strategy: RSI(2) mean reversion on liquid ETFs, long-only, no margin.
+# Profile: FULLY INVESTED / higher-yield (intentionally more aggressive;
+# this is a satellite risk bucket, not the main S&P account).
 # ------------------------------------------------------------------
 
-# Broad, liquid ETFs. Tight spreads, diversified. Keep this list short.
+# Liquid ETFs. Broad indexes + liquid sector ETFs so more setups fire at once
+# (more time invested). Sector ETFs add risk vs. broad-only — that's the point here.
 universe:
   - SPY   # S&P 500
   - QQQ   # Nasdaq 100
@@ -11,21 +14,27 @@ universe:
   - DIA   # Dow 30
   - EFA   # Developed intl
   - EEM   # Emerging markets
+  - XLK   # Technology
+  - SMH   # Semiconductors
+  - XLF   # Financials
+  - XLE   # Energy
+  - XLV   # Health care
+  - XLY   # Consumer discretionary
 
 strategy:
   rsi_period: 2        # Connors-style short RSI
-  rsi_entry: 10.0      # buy when RSI(2) below this (deeply oversold)
+  rsi_entry: 15.0      # buy when RSI(2) below this (looser = more signals)
   rsi_exit: 60.0       # sell when RSI(2) recovers above this
-  trend_sma: 200       # only buy when price is ABOVE this long-term avg
+  trend_sma: 200       # only buy when price is ABOVE this long-term avg (key crash guard)
   exit_sma: 5          # also sell if price closes back above this short avg
   max_hold_days: 10    # time-stop: exit a position held this many days
 
 risk:
-  max_positions: 3         # max concurrent holdings
-  max_position_pct: 0.20   # cap each position at this fraction of equity
-  cash_buffer_pct: 0.25    # always keep at least this fraction of equity in cash
+  max_positions: 5         # max concurrent holdings
+  max_position_pct: 0.25   # cap each position at this fraction of equity
+  cash_buffer_pct: 0.02    # keep ~fully invested (tiny buffer avoids order rejections)
   stop_loss_pct: 0.08      # hard stop: exit if down this much from entry
-  daily_loss_halt_pct: 0.04  # if equity drops this much on the day, no new buys
+  daily_loss_halt_pct: 0.05  # if equity drops this much on the day, no new buys
   use_margin: false        # NEVER borrow. Leave false.
 
 execution:
