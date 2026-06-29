@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T00:47:47+00:00",
+  "generated_at": "2026-06-29T01:30:25+00:00",
   "market_open": false,
   "next_open": "2026-06-29T09:30:00-04:00",
   "next_close": "2026-06-29T16:00:00-04:00",
@@ -34,17 +34,23 @@
       "IWM",
       "DIA",
       "EFA",
-      "EEM"
+      "EEM",
+      "XLK",
+      "SMH",
+      "XLF",
+      "XLE",
+      "XLV",
+      "XLY"
     ],
-    "rsi_entry": 10.0,
+    "rsi_entry": 15.0,
     "rsi_exit": 60.0,
     "trend_sma": 200
   },
   "risk": {
-    "max_positions": 3,
-    "max_position_pct": 0.2,
-    "cash_buffer_pct": 0.25,
+    "max_positions": 5,
+    "max_position_pct": 0.25,
+    "cash_buffer_pct": 0.02,
     "stop_loss_pct": 0.08,
-    "daily_loss_halt_pct": 0.04
+    "daily_loss_halt_pct": 0.05
   }
 }

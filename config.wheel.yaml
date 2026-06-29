@@ -1,0 +1,38 @@
+# ------------------------------------------------------------------
+# Moderate-risk options WHEEL config. Separate from config.yaml (the RSI bot).
+# Cash-secured puts + covered calls only. No naked options, no margin.
+# enabled:false and wheel_run.py defaults to --dry-run, so nothing trades
+# until you (a) enable options Level 1 on the account and (b) opt in.
+# ------------------------------------------------------------------
+
+enabled: false
+
+# Fundamentally sound, liquid names with tight option spreads.
+universe:
+  - SPY
+  - QQQ
+  - IWM
+  - AAPL
+  - MSFT
+  - JNJ
+  - KO
+  - XLP
+
+max_wheel_tickers: 5          # 3-6 simultaneous wheel names (concentration guard)
+per_stock_cap_pct: 0.08       # <=5-10% of equity per underlying when fully assigned
+portfolio_wheel_cap_pct: 0.45 # 40-50% total wheel exposure (put cash + share notional)
+
+put:
+  otm_pct: [0.10, 0.15]       # strike 10-15% BELOW spot (would be happy to own here)
+  dte: [30, 45]
+  min_annual_yield: 0.10      # require >=10% annualized on reserved cash
+
+call:
+  otm_above_basis_pct: [0.05, 0.10]  # strike 5-10% ABOVE basis/price (capped upside)
+  dte: [30, 45]
+  min_annual_yield: 0.10
+
+safeguards:
+  halt_new_puts_drawdown_pct: 0.20   # underlying <= -20% vs entry/basis -> no new puts
+  order_type: limit                  # never market-order options (wide spreads)
+  limit_slippage_pct: 0.02           # shave limit this far below bid to improve fills
