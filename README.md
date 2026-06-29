@@ -55,26 +55,32 @@ python3 -m venv .venv
    on manual dispatch (**Actions** tab → *trade* → *Run workflow*).
 4. The bot checks the market clock and does nothing when the market is closed.
 
-### Live dashboard via Vercel (optional, free)
+### Live dashboard via Cloudflare Pages (optional, free)
 
 GitHub Pages serves the daily snapshot. For numbers that update **live during
-market hours**, deploy the same `docs/` site to Vercel — it adds a serverless
-function (`api/live.js`) that proxies Alpaca in real time. The dashboard loads the
-committed snapshot first (chart, history, strategy), then overlays live
-equity/positions/P&L from the function. If the function isn't present (e.g. on
-GitHub Pages) it falls back silently to the snapshot, so the same `index.html`
-works on both hosts.
+market hours**, deploy the `docs/` site to **Cloudflare Pages** — it runs the
+serverless function `functions/api/live.js` (route `/api/live`) that proxies Alpaca
+in real time. The dashboard loads the committed snapshot first (chart, history,
+strategy), then overlays live equity/positions/P&L from the function. If the
+function isn't present (e.g. on plain GitHub Pages) it falls back silently to the
+snapshot, so the same `index.html` works on both hosts.
 
-**One-time Vercel setup:**
-1. At [vercel.com](https://vercel.com) → **Add New… → Project** → import the
-   `passive-income` GitHub repo. Framework preset: **Other** (config is in
-   `vercel.json`; it serves `docs/` and detects `api/`).
-2. Project **Settings → Environment Variables**, add `ALPACA_API_KEY` and
+> Cloudflare Pages' free tier allows commercial use and includes 100k function
+> requests/day — plenty here. (Vercel's free **Hobby** plan forbids commercial use,
+> which a trading app can trip, so Cloudflare is the better fit.)
+
+**One-time Cloudflare setup:**
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages → Create
+   → Pages → Connect to Git** → select the `passive-income` repo.
+2. Build settings: **Framework preset: None**, **Build command: empty**,
+   **Build output directory: `docs`**. (The `functions/` directory is detected
+   automatically.)
+3. **Settings → Environment variables** (Production), add `ALPACA_API_KEY` and
    `ALPACA_API_SECRET` (server-side only — never exposed to the browser).
-3. Deploy. Vercel auto-redeploys on every push to `main`.
+4. Deploy. Cloudflare auto-redeploys on every push to `main`.
 
-The trading bot still runs on **GitHub Actions** — Vercel only hosts the dashboard
-and the live-data proxy. Keys in the Vercel function are as safe as your GitHub
+The trading bot still runs on **GitHub Actions** — Cloudflare only hosts the
+dashboard and the live-data proxy. Keys in the function are as safe as your GitHub
 secrets; just remember a public deployment exposes your (paper) account stats to
 anyone with the URL.
 

@@ -1,6 +1,7 @@
-// Vercel serverless function: returns LIVE account + positions from Alpaca.
-// Keys live in Vercel env vars (server-side) and are never sent to the browser.
-// The dashboard overlays this on top of the committed docs/data.json snapshot.
+// Cloudflare Pages Function: returns LIVE account + positions from Alpaca.
+// Mapped to the route /api/live. Keys live in Cloudflare env vars (server-side,
+// via context.env) and are never sent to the browser. The dashboard overlays
+// this on top of the committed docs/data.json snapshot.
 
 const BASE = "https://paper-api.alpaca.markets/v2";
 
@@ -9,12 +10,23 @@ function num(x) {
   return Number.isFinite(n) ? n : 0;
 }
 
-export default async function handler(req, res) {
-  const key = process.env.ALPACA_API_KEY;
-  const secret = process.env.ALPACA_API_SECRET;
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: {
+      "content-type": "application/json",
+      // Cache briefly at the edge so we don't hammer Alpaca on every refresh.
+      "cache-control": "s-maxage=20, stale-while-revalidate=40",
+    },
+  });
+}
+
+export async function onRequestGet(context) {
+  const { env } = context;
+  const key = env.ALPACA_API_KEY;
+  const secret = env.ALPACA_API_SECRET;
   if (!key || !secret) {
-    res.status(500).json({ error: "Missing ALPACA_API_KEY / ALPACA_API_SECRET env vars" });
-    return;
+    return json({ error: "Missing ALPACA_API_KEY / ALPACA_API_SECRET env vars" }, 500);
   }
   const headers = { "APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret };
 
@@ -26,8 +38,7 @@ export default async function handler(req, res) {
     ]);
 
     if (!acctR.ok) {
-      res.status(502).json({ error: `Alpaca account ${acctR.status}` });
-      return;
+      return json({ error: `Alpaca account ${acctR.status}` }, 502);
     }
 
     const a = await acctR.json();
@@ -37,7 +48,7 @@ export default async function handler(req, res) {
     const equity = num(a.equity);
     const lastEquity = num(a.last_equity);
 
-    const payload = {
+    return json({
       generated_at: new Date().toISOString(),
       live: true,
       market_open: !!clock.is_open,
@@ -59,12 +70,8 @@ export default async function handler(req, res) {
         unrealized_pl: num(p.unrealized_pl),
         unrealized_plpc: num(p.unrealized_plpc) * 100,
       })),
-    };
-
-    // Cache briefly at the edge so we don't hammer Alpaca on every refresh.
-    res.setHeader("Cache-Control", "s-maxage=20, stale-while-revalidate=40");
-    res.status(200).json(payload);
+    });
   } catch (e) {
-    res.status(502).json({ error: String(e) });
+    return json({ error: String(e) }, 502);
   }
 }
