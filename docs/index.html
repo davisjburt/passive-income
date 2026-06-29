@@ -2,8 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Davis's Passive Income Dashboard</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0e0e10" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Portfolio" />
     <style>
       :root {
         --bg: #fafafa;
@@ -516,8 +526,8 @@
         }
       }
 
-      // Overlay live account/positions from the Vercel function, if available.
-      // On GitHub Pages (no function) this 404s and we silently keep the snapshot.
+      // Overlay live account/positions from the /api/live function, if available
+      // (Cloudflare Pages). On plain GitHub Pages it 404s and we keep the snapshot.
       async function loadLive() {
         if (!baseData) return;
         try {
@@ -565,6 +575,13 @@
       load();
       loadReports();
       setInterval(load, 30000); // refresh while the page is open
+
+      // Register the service worker so the dashboard installs as a PWA.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () =>
+          navigator.serviceWorker.register("sw.js").catch(() => {}),
+        );
+      }
     </script>
   </body>
 </html>
