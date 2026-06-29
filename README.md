@@ -78,8 +78,9 @@ JSON — no backend, no build step. The page auto-refreshes every 60s while open
    then **Branch: `main`, folder: `/docs`**, Save.
 3. Your dashboard appears at `https://<your-username>.github.io/<repo-name>/`.
 
-The workflow already has `permissions: contents: write` so it can commit the data
-file; commits use `[skip ci]` so they don't re-trigger the bot.
+The workflow has `permissions: contents: write` so it can commit the data file.
+It only triggers on a schedule / manual dispatch (never on `push`), so the
+commit-back doesn't loop, and each pushed commit lets Pages redeploy the dashboard.
 
 Generate the data locally anytime: `python run.py --dry-run` (writes `docs/data.json`),
 then open `docs/index.html` (serve it, e.g. `python -m http.server --directory docs`).
