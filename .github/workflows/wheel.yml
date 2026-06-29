@@ -46,9 +46,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/wheel_ledger.json
+          git add docs/wheel_ledger.json docs/wheel.json
           if git diff --cached --quiet; then
-            echo "No ledger changes."
+            echo "No changes."
           else
             git commit -m "chore: update wheel ledger"
             git push

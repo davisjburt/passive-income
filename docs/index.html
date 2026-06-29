@@ -203,7 +203,8 @@
       /* Let wide tables scroll sideways instead of cramping on small screens. */
       #positions,
       #orders,
-      #reports {
+      #reports,
+      #wheel {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
@@ -306,6 +307,11 @@
       <div class="card">
         <h2>Recent activity</h2>
         <div id="orders"></div>
+      </div>
+
+      <div class="card" id="wheelCard" style="display: none">
+        <h2>Wheel (options)</h2>
+        <div id="wheel"></div>
       </div>
 
       <div class="card">
@@ -598,9 +604,70 @@
         }
       }
 
+      async function loadWheel() {
+        try {
+          const res = await fetch("wheel.json?cb=" + Date.now(), {
+            cache: "no-store",
+          });
+          if (!res.ok) return;
+          const d = await res.json();
+          const parts = [
+            `<div class="foot" style="margin-bottom:14px">
+               <div class="row"><span class="k">Exposure</span><span>${d.exposure_pct}%</span></div>
+               <div class="row"><span class="k">Premium collected</span><span>${money(d.total_premium_collected)}</span></div>
+             </div>`,
+          ];
+          const pendRows = (d.pending_orders || [])
+            .map(
+              (o) => `<tr>
+                <td class="sym">${o.underlying}</td>
+                <td class="${o.type === "put" ? "pos" : "neg"}">${o.type.toUpperCase()}</td>
+                <td class="mono">$${o.strike.toFixed(2)}</td>
+                <td class="mono">${o.expiration}</td>
+                <td class="mono">$${o.limit.toFixed(2)}</td>
+                <td style="color:var(--muted)">${o.status}</td>
+              </tr>`,
+            )
+            .join("");
+          if (pendRows) {
+            parts.push(`<div class="empty" style="padding:4px 0">Pending orders</div>
+              <table><thead><tr><th>Underlying</th><th>Type</th><th>Strike</th><th>Expiry</th><th>Limit</th><th>Status</th></tr></thead>
+              <tbody>${pendRows}</tbody></table>`);
+          }
+          const posRows = (d.option_positions || [])
+            .map(
+              (p) => `<tr>
+                <td class="sym">${p.underlying}</td>
+                <td class="${p.type === "put" ? "pos" : "neg"}">${p.type.toUpperCase()}</td>
+                <td class="mono">$${p.strike.toFixed(2)}</td>
+                <td class="mono">${p.expiration}</td>
+                <td class="mono">${p.qty}</td>
+                <td class="mono ${cls(p.unrealized_pl)}">${signed(p.unrealized_pl)}</td>
+              </tr>`,
+            )
+            .join("");
+          if (posRows) {
+            parts.push(`<div class="empty" style="padding:10px 0 4px">Open option positions</div>
+              <table><thead><tr><th>Underlying</th><th>Type</th><th>Strike</th><th>Expiry</th><th>Qty</th><th>Unreal. P/L</th></tr></thead>
+              <tbody>${posRows}</tbody></table>`);
+          }
+          if (!pendRows && !posRows) {
+            parts.push(`<div class="empty">No open option orders or positions.</div>`);
+          }
+          $("wheel").innerHTML = parts.join("");
+          $("wheelCard").style.display = "";
+        } catch (e) {
+          /* hide wheel card on error */
+        }
+      }
+
       load();
       loadReports();
-      setInterval(load, 30000); // refresh while the page is open
+      loadWheel();
+      setInterval(() => {
+        load();
+        loadWheel();
+      }, 30000); // refresh while the page is open
 
       // Register the service worker so the dashboard installs as a PWA.
       if ("serviceWorker" in navigator) {

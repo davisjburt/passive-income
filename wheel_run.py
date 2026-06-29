@@ -37,6 +37,13 @@ def main() -> int:
         logging.getLogger("wheel").exception("Wheel cycle failed")
         return 1
 
+    # Always refresh the dashboard's wheel data (positions + pending orders).
+    try:
+        from bot.wheel.report import write_wheel_report
+        write_wheel_report(cfg)
+    except Exception:
+        logging.getLogger("wheel").exception("Wheel report failed")
+
     print("\n--- Wheel summary ---")
     print(f"Exposure: {summary.get('exposure_pct', 0)}% of equity")
     print("Orders:")
