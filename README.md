@@ -85,10 +85,37 @@ commit-back doesn't loop, and each pushed commit lets Pages redeploy the dashboa
 Generate the data locally anytime: `python run.py --dry-run` (writes `docs/data.json`),
 then open `docs/index.html` (serve it, e.g. `python -m http.server --directory docs`).
 
+## Weekly report + automated review
+
+**Friday after the close**, two things happen:
+
+1. **`weekly.yml` workflow** (GitHub Actions, has your API keys) runs
+   [`weekly.py`](weekly.py), which:
+   - **Cancels any outstanding orders** so nothing sits open over the weekend.
+   - Generates a **weekly trade report** — every closed trade with entry/exit and
+     realized P&L (FIFO-matched), a win/loss summary, and open positions — written
+     to `docs/reports/<week-ending>.md` and indexed in `docs/reports/index.json`.
+   - Refreshes `docs/data.json`, then commits everything (dashboard + reports update).
+
+2. **A Claude routine** (`weekly-trading-bot-review`, scheduled 5pm CT Friday)
+   reads that report, evaluates the week, and — only if clearly justified — makes a
+   small, bounded tuning change to `config.yaml`, runs the tests, logs the reason in
+   `CHANGELOG.md`, and pushes so the site updates. It defaults to **no change**
+   (one week is too little data to overfit on) and can never enable margin, go live,
+   or remove a safety guardrail.
+
+> The Claude routine runs only while the Claude app is open; if it's closed at
+> 5pm Friday, it runs on next launch. The order-cancellation + report generation
+> happen in GitHub Actions regardless, so those never depend on your app being open.
+
+Reports are linked from the dashboard and viewable in the repo. Generate one
+locally anytime with `python weekly.py --dry-run` (skips order cancellation).
+
 ## Tuning
 
 Everything tunable lives in `config.yaml` — universe, RSI thresholds, trend filter,
-and all risk caps. No code changes needed.
+and all risk caps. No code changes needed. The Friday routine logs any automated
+tuning to `CHANGELOG.md`.
 
 ## Project layout
 
@@ -104,11 +131,15 @@ bot/
   risk.py              pure sizing & guardrail math (unit-tested)
   trader.py            orchestration: state -> signals -> orders
   report.py            builds docs/data.json for the dashboard
+  weekly_report.py     weekly trade report w/ FIFO realized P&L
+  maintenance.py       cancel outstanding orders
+weekly.py              Friday job: cancel orders + weekly report
 docs/
   index.html           static dashboard (GitHub Pages)
-  data.json            account snapshot, refreshed each CI run
+  data.json            account snapshot, refreshed each run
+  reports/             weekly trade reports (markdown) + index.json
 tests/                 unit tests (no network)
-.github/workflows/     scheduled CI run
+.github/workflows/     trade.yml (daily) + weekly.yml (Friday close)
 ```
 
 ## Going to real money (don't rush this)

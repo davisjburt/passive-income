@@ -102,6 +102,11 @@
   </div>
 
   <div class="card">
+    <h2>Weekly reports</h2>
+    <div id="reports"><div class="empty">No reports yet.</div></div>
+  </div>
+
+  <div class="card">
     <h2>Strategy &amp; risk</h2>
     <div class="foot" id="foot"></div>
   </div>
@@ -205,6 +210,27 @@ function render(d) {
   $("updated").textContent = "Updated " + gen.toLocaleString();
 }
 
+async function loadReports() {
+  try {
+    const res = await fetch("reports/index.json?cb=" + Date.now(), {cache: "no-store"});
+    if (!res.ok) return;
+    const list = await res.json();
+    if (!list.length) return;
+    const rows = list.slice(0, 12).map(r => {
+      const sign = r.week_return_pct >= 0 ? "pos" : "neg";
+      return `<tr>
+        <td><a href="reports/${r.file}">Week ending ${r.week_ending}</a></td>
+        <td class="mono">${r.num_trades} trades</td>
+        <td class="mono ${sign}">${(r.week_return_pct >= 0 ? "+" : "") + r.week_return_pct.toFixed(2)}%</td>
+        <td class="mono ${cls(r.realized_pl)}">${signed(r.realized_pl)}</td>
+      </tr>`;
+    }).join("");
+    $("reports").innerHTML = `<table>
+      <thead><tr><th>Report</th><th>Trades</th><th>Return</th><th>Realized P&L</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } catch (e) { /* leave default empty state */ }
+}
+
 function drawChart(curve) {
   const svg = $("chart");
   const W = 800, H = 200, pad = 6;
@@ -252,6 +278,7 @@ async function load() {
   }
 }
 load();
+loadReports();
 setInterval(load, 60000); // refresh while the page is open
 </script>
 </body>

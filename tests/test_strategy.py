@@ -89,3 +89,39 @@ def test_position_notional():
 def test_stop_loss():
     assert risk.hit_stop_loss(100, 91, 0.08) is True
     assert risk.hit_stop_loss(100, 93, 0.08) is False
+
+
+# ---- weekly report FIFO matching ----
+
+def test_match_trades_simple_roundtrip():
+    from datetime import datetime, timezone
+    from bot.weekly_report import match_trades
+    t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    t1 = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    fills = [
+        {"symbol": "SPY", "side": "buy", "qty": 10, "price": 100.0, "time": t0},
+        {"symbol": "SPY", "side": "sell", "qty": 10, "price": 110.0, "time": t1},
+    ]
+    closed, open_lots = match_trades(fills)
+    assert len(closed) == 1
+    assert round(closed[0]["pnl"], 2) == 100.0   # (110-100)*10
+    assert round(closed[0]["pnl_pct"], 2) == 10.0
+    assert open_lots == {}
+
+
+def test_match_trades_partial_and_fifo():
+    from datetime import datetime, timezone
+    from bot.weekly_report import match_trades
+    t = lambda d: datetime(2026, 1, d, tzinfo=timezone.utc)
+    fills = [
+        {"symbol": "QQQ", "side": "buy", "qty": 5, "price": 100.0, "time": t(1)},
+        {"symbol": "QQQ", "side": "buy", "qty": 5, "price": 120.0, "time": t(2)},
+        {"symbol": "QQQ", "side": "sell", "qty": 7, "price": 130.0, "time": t(3)},
+    ]
+    closed, open_lots = match_trades(fills)
+    # FIFO: sells 5 from the $100 lot, then 2 from the $120 lot.
+    assert len(closed) == 2
+    assert round(closed[0]["pnl"], 2) == 150.0   # (130-100)*5
+    assert round(closed[1]["pnl"], 2) == 20.0    # (130-120)*2
+    # 3 shares of the $120 lot remain open.
+    assert open_lots["QQQ"][0][0] == 3
