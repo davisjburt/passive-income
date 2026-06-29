@@ -114,6 +114,24 @@ commit-back doesn't loop, and each pushed commit lets Pages redeploy the dashboa
 Generate the data locally anytime: `python run.py --dry-run` (writes `docs/data.json`),
 then open `docs/index.html` (serve it, e.g. `python -m http.server --directory docs`).
 
+## Telegram trade alerts (optional, free)
+
+Get a push notification on your phone whenever the bot actually places trades (and
+when the daily-loss kill switch trips, plus a Friday weekly summary). Disabled
+unless both env vars are set, so it never interferes with tests or dry-runs.
+
+**Setup:**
+1. In Telegram, message **@BotFather** → `/newbot` → follow prompts → copy the
+   **bot token**.
+2. Send any message to your new bot (so it has a chat to reply to).
+3. Find your chat id: put the token in `.env` as `TELEGRAM_BOT_TOKEN`, then run
+   `python -m bot.notify chatid`. Copy the printed `TELEGRAM_CHAT_ID`.
+4. Test locally: add both to `.env`, run `python -m bot.notify test` — you should
+   get a message.
+5. For the autonomous runs, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as
+   **GitHub repo secrets** (same place as the Alpaca keys). The workflows already
+   pass them through.
+
 ## Weekly report + automated review
 
 **Friday after the close**, two things happen:
@@ -162,6 +180,7 @@ bot/
   report.py            builds docs/data.json for the dashboard
   weekly_report.py     weekly trade report w/ FIFO realized P&L
   maintenance.py       cancel outstanding orders
+  notify.py            optional Telegram trade alerts
 weekly.py              Friday job: cancel orders + weekly report
 docs/
   index.html           static dashboard (GitHub Pages)

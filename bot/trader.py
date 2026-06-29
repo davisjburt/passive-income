@@ -60,6 +60,7 @@ def run_cycle(cfg: Config, dry_run: bool = False) -> dict:
     equity = float(acct.equity)
     cash = float(acct.cash)
     last_equity = float(acct.last_equity)
+    summary["equity"] = equity
     log.info(
         "Account: equity=$%.2f cash=$%.2f (since prior close: %+.2f%%)",
         equity, cash, (equity - last_equity) / last_equity * 100 if last_equity else 0.0,

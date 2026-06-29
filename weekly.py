@@ -18,12 +18,14 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from datetime import datetime
 
 from bot.client import make_trading_client
 from bot.config import load_config
 from bot.maintenance import cancel_open_orders
+from bot.notify import send_telegram
 from bot.report import write_report
-from bot.weekly_report import write_weekly_report
+from bot.weekly_report import build_report, write_weekly_report
 
 
 def main() -> int:
@@ -52,6 +54,19 @@ def main() -> int:
     except Exception:
         log.exception("Weekly job failed")
         return 1
+
+    if not args.dry_run:
+        try:
+            s = build_report(cfg)["summary"]
+            sign = "🟢" if s["realized_pl"] >= 0 else "🔴"
+            send_telegram(
+                f"📊 *Weekly report* — week ending {datetime.now().strftime('%Y-%m-%d')}\n"
+                f"{sign} Realized P&L: ${s['realized_pl']:,.2f}\n"
+                f"Return: {s['week_return_pct']:+.2f}% · "
+                f"{s['num_trades']} trades · {s['win_rate']:.0f}% win rate"
+            )
+        except Exception:
+            log.exception("Weekly notification failed")
 
     print(f"\nWeekly report written: {report_path}")
     return 0

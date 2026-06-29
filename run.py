@@ -12,6 +12,7 @@ import logging
 import sys
 
 from bot.config import load_config
+from bot.notify import notify_trades, send_telegram
 from bot.report import write_report
 from bot.trader import run_cycle
 
@@ -63,6 +64,14 @@ def main() -> int:
             print(f"  - {a}")
     else:
         print("Actions     : none (no signals / no slots)")
+
+    # Telegram push (only for real trades, not dry-runs).
+    if not args.dry_run:
+        if actions:
+            notify_trades(actions, equity=summary.get("equity"))
+        if summary.get("halted"):
+            send_telegram("⚠️ *Trading bot* — daily-loss kill switch hit. "
+                          "No new buys today; managing exits only.")
     return 0
 
 

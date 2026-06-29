@@ -125,3 +125,23 @@ def test_match_trades_partial_and_fifo():
     assert round(closed[1]["pnl"], 2) == 20.0    # (130-120)*2
     # 3 shares of the $120 lot remain open.
     assert open_lots["QQQ"][0][0] == 3
+
+
+# ---- notifications ----
+
+def test_telegram_disabled_when_env_unset(monkeypatch):
+    from bot import notify
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    assert notify.telegram_enabled() is False
+    # send/notify must no-op (return False) without attempting any network call.
+    assert notify.send_telegram("hi") is False
+    assert notify.notify_trades(["BUY SPY ~$100"]) is False
+
+
+def test_notify_trades_empty_is_noop(monkeypatch):
+    from bot import notify
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "y")
+    # No actions -> returns False without sending.
+    assert notify.notify_trades([]) is False
