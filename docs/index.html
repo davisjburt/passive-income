@@ -268,18 +268,60 @@ function drawChart(curve) {
   $("chartEnd").textContent = curve[curve.length - 1].t;
 }
 
+let baseData = null;  // committed snapshot (chart, history, strategy, risk)
+
 async function load() {
   try {
     const res = await fetch("data.json?cb=" + Date.now(), {cache: "no-store"});
     if (!res.ok) throw new Error(res.status);
-    render(await res.json());
+    baseData = await res.json();
+    render(baseData);
+    loadLive();           // try to overlay live numbers on top
   } catch (e) {
     $("updated").textContent = "Could not load data.json (" + e.message + ")";
   }
 }
+
+// Overlay live account/positions from the Vercel function, if available.
+// On GitHub Pages (no function) this 404s and we silently keep the snapshot.
+async function loadLive() {
+  if (!baseData) return;
+  try {
+    const res = await fetch("api/live?cb=" + Date.now(), {cache: "no-store"});
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d || !d.account) return;
+    const m = JSON.parse(JSON.stringify(baseData));
+    const eq = d.account.equity;
+    m.account.equity = eq;
+    m.account.cash = d.account.cash;
+    m.account.buying_power = d.account.buying_power;
+    m.account.portfolio_value = d.account.portfolio_value;
+    m.account.last_equity = d.account.last_equity;
+    m.account.day_pl = d.account.day_pl;
+    m.account.day_pl_pct = d.account.day_pl_pct;
+    const baseline = (baseData.equity_curve && baseData.equity_curve.length)
+      ? baseData.equity_curve[0].equity : eq;
+    m.account.total_pl = eq - baseline;
+    m.account.total_pl_pct = baseline ? ((eq - baseline) / baseline) * 100 : 0;
+    // Extend the equity curve with the live point so the chart moves intraday.
+    if (m.equity_curve && m.equity_curve.length) {
+      const today = d.generated_at.slice(0, 10);
+      const last = m.equity_curve[m.equity_curve.length - 1];
+      if (last.t === today) last.equity = eq;
+      else m.equity_curve.push({t: today, equity: eq});
+    }
+    m.positions = d.positions;
+    m.market_open = d.market_open;
+    m.generated_at = d.generated_at;
+    render(m);
+    $("updated").textContent = "Live · updated " + new Date(d.generated_at).toLocaleTimeString();
+  } catch (e) { /* keep snapshot */ }
+}
+
 load();
 loadReports();
-setInterval(load, 60000); // refresh while the page is open
+setInterval(load, 30000); // refresh while the page is open
 </script>
 </body>
 </html>

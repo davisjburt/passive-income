@@ -55,6 +55,29 @@ python3 -m venv .venv
    on manual dispatch (**Actions** tab → *trade* → *Run workflow*).
 4. The bot checks the market clock and does nothing when the market is closed.
 
+### Live dashboard via Vercel (optional, free)
+
+GitHub Pages serves the daily snapshot. For numbers that update **live during
+market hours**, deploy the same `docs/` site to Vercel — it adds a serverless
+function (`api/live.js`) that proxies Alpaca in real time. The dashboard loads the
+committed snapshot first (chart, history, strategy), then overlays live
+equity/positions/P&L from the function. If the function isn't present (e.g. on
+GitHub Pages) it falls back silently to the snapshot, so the same `index.html`
+works on both hosts.
+
+**One-time Vercel setup:**
+1. At [vercel.com](https://vercel.com) → **Add New… → Project** → import the
+   `passive-income` GitHub repo. Framework preset: **Other** (config is in
+   `vercel.json`; it serves `docs/` and detects `api/`).
+2. Project **Settings → Environment Variables**, add `ALPACA_API_KEY` and
+   `ALPACA_API_SECRET` (server-side only — never exposed to the browser).
+3. Deploy. Vercel auto-redeploys on every push to `main`.
+
+The trading bot still runs on **GitHub Actions** — Vercel only hosts the dashboard
+and the live-data proxy. Keys in the Vercel function are as safe as your GitHub
+secrets; just remember a public deployment exposes your (paper) account stats to
+anyone with the URL.
+
 **Note on timing & cron:** `19:30 UTC` is ~30 min before the US close in summer
 (EDT) and ~90 min before in winter (EST). GitHub may delay scheduled runs by a few
 minutes. Mean-reversion signals are computed on daily bars, so near-close timing is
