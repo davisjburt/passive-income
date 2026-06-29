@@ -207,6 +207,9 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                 summary["skipped"].append(f"{sym}: no put meets filters"); continue
             c, y = pick
             _sell_to_open(trading, c, y, cfg, dry_run, summary)
+            if not dry_run and not ledger.get(sym).entry_price:
+                # Reference price for the drawdown circuit-breaker on future puts.
+                ledger.get(sym).entry_price = spot
             exposure += c.strike * 100
             active += 1
 

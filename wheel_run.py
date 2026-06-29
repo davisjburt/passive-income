@@ -47,6 +47,12 @@ def main() -> int:
         print("Skipped (why nothing fired):")
         for sline in skipped:
             print(f"  - {sline}")
+
+    # Notify on real orders only (not dry-runs).
+    actions = summary.get("actions", [])
+    if not dry and actions:
+        from bot.notify import send_telegram
+        send_telegram("🛞 *Wheel* — orders placed:\n" + "\n".join(f"• {a}" for a in actions))
     return 0
 
 

@@ -1,0 +1,52 @@
+name: wheel
+
+on:
+  schedule:
+    # 15:00 UTC weekdays = ~11am ET (EDT) / ~10am ET (EST). Mid-session for good
+    # option liquidity. The engine no-ops if the market is closed.
+    - cron: "0 15 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wheel
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  wheel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Run wheel cycle (live paper)
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python wheel_run.py --live
+
+      - name: Commit wheel ledger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/wheel_ledger.json
+          if git diff --cached --quiet; then
+            echo "No ledger changes."
+          else
+            git commit -m "chore: update wheel ledger"
+            git push
+          fi
