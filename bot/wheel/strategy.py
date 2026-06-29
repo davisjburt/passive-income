@@ -123,6 +123,29 @@ def select_put(candidates, spot, rules: LegRules, today, equity,
     return best
 
 
+def aggregate_premium(fills: list[dict]) -> dict[str, dict]:
+    """Sum option premium per underlying from FILLED option orders.
+
+    fills: {underlying, side('sell'|'buy'), credit} where credit = price*qty*100.
+    Selling collects premium (credit); buying-to-close pays it back (debit).
+    Returns per-underlying {gross_premium, debits, realized}. `realized` is
+    gross - debits; it's approximate while a short is still open (counts the
+    credit before expiry), but exact once positions are closed/expired.
+    """
+    out: dict[str, dict] = {}
+    for f in fills:
+        d = out.setdefault(f["underlying"], {"gross_premium": 0.0, "debits": 0.0})
+        if f["side"] == "sell":
+            d["gross_premium"] += f["credit"]
+        else:
+            d["debits"] += f["credit"]
+    for d in out.values():
+        d["realized"] = round(d["gross_premium"] - d["debits"], 2)
+        d["gross_premium"] = round(d["gross_premium"], 2)
+        d["debits"] = round(d["debits"], 2)
+    return out
+
+
 def select_call(candidates, basis, current_price, rules: LegRules, today):
     """Best covered-call contract 5-10% above max(basis, current price), or None.
 

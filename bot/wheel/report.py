@@ -17,7 +17,7 @@ from alpaca.trading.requests import GetOrdersRequest
 
 from .config import WheelConfig
 from .engine import Ledger, build_positions_view, pending_option_underlyings
-from .strategy import parse_occ, reconstruct_state
+from .strategy import aggregate_premium, parse_occ, reconstruct_state
 
 log = logging.getLogger("wheel")
 WHEEL_FILE = Path(__file__).resolve().parents[2] / "docs" / "wheel.json"
@@ -30,11 +30,30 @@ def _f(x, default=0.0):
         return default
 
 
+def _option_fills(t: TradingClient) -> list[dict]:
+    """Filled option orders -> premium fills for aggregate_premium()."""
+    fills = []
+    for o in t.get_orders(GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=500)):
+        if not o.filled_at or not o.filled_avg_price or not o.filled_qty:
+            continue
+        try:
+            under, _exp, _typ, _strike = parse_occ(o.symbol)
+        except ValueError:
+            continue  # equity order
+        side = getattr(o.side, "value", str(o.side))
+        fills.append({
+            "underlying": under, "side": side,
+            "credit": _f(o.filled_avg_price) * _f(o.filled_qty) * 100,
+        })
+    return fills
+
+
 def build_wheel_report(cfg: WheelConfig) -> dict:
     t = TradingClient(cfg.api_key, cfg.api_secret, paper=cfg.paper)
     acct = t.get_account()
     equity = _f(acct.equity)
     led = Ledger.load()
+    pnl = aggregate_premium(_option_fills(t))  # per-underlying premium from fills
 
     option_positions, pv = [], build_positions_view(t)
     for p in t.get_all_positions():
@@ -74,11 +93,11 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
             state_label = "ORDER_PENDING"
         else:
             state_label = state.value
-        L = led.get(sym)
+        p = pnl.get(sym, {})
         symbols.append({
             "symbol": sym, "state": state_label,
-            "premium_collected": round(L.premium_collected, 2),
-            "cost_basis": round(L.cost_basis, 2),
+            "premium_collected": p.get("gross_premium", 0.0),
+            "realized_pnl": p.get("realized", 0.0),
         })
 
     exposure = pv.exposure() + sum(o["strike"] * 100 for o in pending if o["type"] == "put")
@@ -88,6 +107,7 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
         "equity": round(equity, 2),
         "exposure_pct": round(exposure / equity * 100, 1) if equity else 0,
         "total_premium_collected": round(sum(s["premium_collected"] for s in symbols), 2),
+        "total_realized_pnl": round(sum(s["realized_pnl"] for s in symbols), 2),
         "option_positions": option_positions,
         "pending_orders": pending,
         "symbols": symbols,

@@ -6,6 +6,7 @@ from bot.wheel.strategy import (
     Contract,
     LegRules,
     WheelState,
+    aggregate_premium,
     annualized_yield,
     call_strike_band,
     parse_occ,
@@ -100,6 +101,20 @@ def test_select_put_respects_per_stock_cap():
     assert select_put(cands, spot, rules, TODAY, 100_000, 0.08, 0, 0.45) is None
     # cap 10% = 10000 -> ok
     assert select_put(cands, spot, rules, TODAY, 100_000, 0.10, 0, 0.45) is not None
+
+
+def test_aggregate_premium():
+    fills = [
+        {"underlying": "CLF", "side": "sell", "credit": 21.0},   # sold a put, +$21
+        {"underlying": "CLF", "side": "buy", "credit": 5.0},     # bought back, -$5
+        {"underlying": "F", "side": "sell", "credit": 30.0},     # sold a put, +$30
+    ]
+    agg = aggregate_premium(fills)
+    assert agg["CLF"]["gross_premium"] == 21.0
+    assert agg["CLF"]["debits"] == 5.0
+    assert agg["CLF"]["realized"] == 16.0   # 21 - 5
+    assert agg["F"]["gross_premium"] == 30.0
+    assert agg["F"]["realized"] == 30.0     # expired worthless -> keep full credit
 
 
 def test_select_call_anchors_above_price_when_underwater():

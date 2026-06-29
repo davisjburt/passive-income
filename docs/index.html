@@ -615,6 +615,7 @@
             `<div class="foot" style="margin-bottom:14px">
                <div class="row"><span class="k">Exposure</span><span>${d.exposure_pct}%</span></div>
                <div class="row"><span class="k">Premium collected</span><span>${money(d.total_premium_collected)}</span></div>
+               <div class="row"><span class="k">Net option P/L</span><span class="${cls(d.total_realized_pnl || 0)}">${signed(d.total_realized_pnl || 0)}</span></div>
              </div>`,
           ];
           const pendRows = (d.pending_orders || [])

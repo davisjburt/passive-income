@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-06-29T15:23:31+00:00",
+  "generated_at": "2026-06-29T15:29:40+00:00",
   "enabled": true,
   "equity": 10000.0,
   "exposure_pct": 8.0,
   "total_premium_collected": 0.0,
+  "total_realized_pnl": 0.0,
   "option_positions": [],
   "pending_orders": [
     {
@@ -21,49 +22,49 @@
       "symbol": "F",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "AAL",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "SOFI",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "VALE",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "WBD",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "NIO",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "KGC",
       "state": "CASH",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     },
     {
       "symbol": "CLF",
       "state": "ORDER_PENDING",
       "premium_collected": 0.0,
-      "cost_basis": 0.0
+      "realized_pnl": 0.0
     }
   ]
 }
