@@ -1,21 +1,21 @@
 {
   "enabled": true,
-  "equity": 10000.0,
+  "equity": 9992.98,
   "exposure_pct": 8.0,
-  "total_premium_collected": 0.0,
-  "total_realized_pnl": 0.0,
-  "option_positions": [],
-  "pending_orders": [
+  "total_premium_collected": 21.0,
+  "total_realized_pnl": 21.0,
+  "option_positions": [
     {
       "underlying": "CLF",
       "type": "put",
       "strike": 8.0,
       "expiration": "2026-07-31",
-      "limit": 0.09,
-      "status": "new",
-      "side": "sell"
+      "qty": -1.0,
+      "market_value": -28.0,
+      "unrealized_pl": -7.0
     }
   ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "F",
@@ -61,9 +61,9 @@
     },
     {
       "symbol": "CLF",
-      "state": "ORDER_PENDING",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "state": "PUT_OPEN",
+      "premium_collected": 21.0,
+      "realized_pnl": 21.0
     }
   ]
 }
