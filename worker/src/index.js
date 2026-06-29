@@ -6,18 +6,18 @@
 // to dispatch the wheel workflow every 15 minutes during market hours.
 
 const REPO = "davisjburt/passive-income";
-const WORKFLOW = "wheel.yml";
+const WORKFLOWS = ["wheel.yml", "trade.yml"];
 
-async function dispatch(env) {
+async function dispatchOne(workflow, env) {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+    `https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.GH_TOKEN}`,
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "wheel-cron-worker", // GitHub API requires a User-Agent
+        "User-Agent": "wheel-cron-worker",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ ref: "main" }),
@@ -26,6 +26,10 @@ async function dispatch(env) {
   if (!res.ok) {
     throw new Error(`dispatch ${res.status}: ${await res.text()}`);
   }
+}
+
+async function dispatch(env) {
+  await Promise.all(WORKFLOWS.map((wf) => dispatchOne(wf, env)));
 }
 
 export default {

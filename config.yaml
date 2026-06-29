@@ -22,12 +22,13 @@ universe:
   - XLY   # Consumer discretionary
 
 strategy:
-  rsi_period: 2        # Connors-style short RSI
-  rsi_entry: 15.0      # buy when RSI(2) below this (looser = more signals)
-  rsi_exit: 60.0       # sell when RSI(2) recovers above this
-  trend_sma: 200       # only buy when price is ABOVE this long-term avg (key crash guard)
-  exit_sma: 5          # also sell if price closes back above this short avg
-  max_hold_days: 10    # time-stop: exit a position held this many days
+  bar_timeframe: "15Min" # 15-minute bars for intraday signals
+  rsi_period: 14       # RSI(14) is standard for intraday; RSI(2) is too noisy on sub-daily bars
+  rsi_entry: 30.0      # classic oversold threshold for RSI(14)
+  rsi_exit: 65.0       # sell when RSI recovers above this
+  trend_sma: 200       # 200 × 15min ≈ 10 trading days — keeps the long-term bias filter
+  exit_sma: 20         # 20 × 15min ≈ 5 hours — sell if price reclaims short-term average
+  max_hold_days: 3     # time-stop: exit after 3 calendar days (intraday positions turn faster)
 
 risk:
   max_positions: 5         # max concurrent holdings
@@ -40,4 +41,4 @@ risk:
 execution:
   order_type: market       # market orders on liquid ETFs
   time_in_force: day
-  lookback_days: 400       # history pulled for indicators (need > trend_sma)
+  lookback_days: 30        # 30 calendar days → ~550 15-min bars, well above trend_sma=200

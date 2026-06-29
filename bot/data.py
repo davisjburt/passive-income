@@ -7,19 +7,30 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
-from alpaca.data.timeframe import TimeFrame
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+
+_TIMEFRAMES: dict[str, TimeFrame] = {
+    "1Min":  TimeFrame(1,  TimeFrameUnit.Minute),
+    "5Min":  TimeFrame(5,  TimeFrameUnit.Minute),
+    "15Min": TimeFrame(15, TimeFrameUnit.Minute),
+    "30Min": TimeFrame(30, TimeFrameUnit.Minute),
+    "1Hour": TimeFrame.Hour,
+    "Day":   TimeFrame.Day,
+}
 
 
-def get_daily_bars(
+def get_bars(
     data_client: StockHistoricalDataClient,
     symbols: list[str],
-    lookback_days: int = 400,
+    lookback_days: int = 30,
+    timeframe: str = "Day",
 ) -> dict[str, pd.DataFrame]:
-    """Return {symbol: DataFrame of daily bars sorted oldest->newest}."""
+    """Return {symbol: DataFrame of bars sorted oldest->newest}."""
+    tf = _TIMEFRAMES.get(timeframe, TimeFrame.Day)
     start = datetime.now(timezone.utc) - timedelta(days=lookback_days)
     req = StockBarsRequest(
         symbol_or_symbols=list(symbols),
-        timeframe=TimeFrame.Day,
+        timeframe=tf,
         start=start,
     )
     resp = data_client.get_stock_bars(req)
@@ -32,6 +43,14 @@ def get_daily_bars(
         if sym in available:
             out[sym] = df.xs(sym).sort_index()
     return out
+
+
+def get_daily_bars(
+    data_client: StockHistoricalDataClient,
+    symbols: list[str],
+    lookback_days: int = 400,
+) -> dict[str, pd.DataFrame]:
+    return get_bars(data_client, symbols, lookback_days, "Day")
 
 
 def rsi(series: pd.Series, period: int) -> pd.Series:

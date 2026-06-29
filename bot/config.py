@@ -15,6 +15,7 @@ load_dotenv(ROOT / ".env")
 
 @dataclass
 class StrategyConfig:
+    bar_timeframe: str = "Day"
     rsi_period: int = 2
     rsi_entry: float = 10.0
     rsi_exit: float = 60.0

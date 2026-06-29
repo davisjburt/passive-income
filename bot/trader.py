@@ -11,7 +11,7 @@ from alpaca.trading.requests import GetOrdersRequest, MarketOrderRequest
 from . import risk
 from .client import make_data_client, make_trading_client
 from .config import Config
-from .data import get_daily_bars
+from .data import get_bars
 from .strategy import evaluate
 
 log = logging.getLogger("bot")
@@ -79,7 +79,7 @@ def run_cycle(cfg: Config, dry_run: bool = False) -> dict:
     pending = {o.symbol for o in open_orders}
     last_buys = _last_buy_dates(trading, cfg.universe) if cfg.strategy.max_hold_days else {}
 
-    bars = get_daily_bars(data, cfg.universe, cfg.execution.lookback_days)
+    bars = get_bars(data, cfg.universe, cfg.execution.lookback_days, cfg.strategy.bar_timeframe)
 
     # ---- 1. Manage existing positions (exits first; always allowed) ----
     for sym, pos in positions.items():
