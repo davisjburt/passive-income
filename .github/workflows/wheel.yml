@@ -2,9 +2,12 @@ name: wheel
 
 on:
   schedule:
-    # 15:00 UTC weekdays = ~11am ET (EDT) / ~10am ET (EST). Mid-session for good
-    # option liquidity. The engine no-ops if the market is closed.
-    - cron: "0 15 * * 1-5"
+    # Every 15 min during ~US market hours (13-21 UTC covers EDT + EST). The
+    # engine no-ops when the market is closed and is idempotent against pending
+    # orders, so frequent runs won't place duplicates. NOTE: GitHub cron is best
+    # effort and often delayed/coalesced under load — 15 min is about the finest
+    # interval it runs reliably; don't expect true 5-min precision here.
+    - cron: "*/15 13-21 * * 1-5"
   workflow_dispatch: {}
 
 concurrency:

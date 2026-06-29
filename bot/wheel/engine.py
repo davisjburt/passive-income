@@ -22,8 +22,8 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.historical.option import OptionHistoricalDataClient
 from alpaca.data.requests import OptionChainRequest, StockLatestQuoteRequest
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import ContractType, OrderSide, TimeInForce
-from alpaca.trading.requests import LimitOrderRequest
+from alpaca.trading.enums import ContractType, OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import GetOrdersRequest, LimitOrderRequest
 
 from .config import WheelConfig
 from .strategy import (
@@ -115,6 +115,27 @@ def build_positions_view(trading: TradingClient) -> PositionsView:
     return pv
 
 
+def pending_option_underlyings(trading: TradingClient) -> dict:
+    """Underlyings that already have an OPEN option order, so we don't duplicate.
+
+    A resting sell-to-open order has no position yet, so reconstruct_state would
+    otherwise see CASH/LONG_STOCK and fire again. Critical once we run frequently.
+    """
+    out: dict[str, dict] = {}
+    try:
+        orders = trading.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("open-orders fetch failed: %s", exc)
+        return out
+    for o in orders:
+        try:
+            under, _exp, typ, strike = parse_occ(o.symbol)
+        except ValueError:
+            continue  # equity order, not an option
+        out[under] = {"type": typ, "strike": strike}
+    return out
+
+
 def get_spot(data: StockHistoricalDataClient, symbol: str) -> float | None:
     try:
         q = data.get_stock_latest_quote(StockLatestQuoteRequest(symbol_or_symbols=symbol))
@@ -179,14 +200,20 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     acct = trading.get_account()
     equity = float(acct.equity)
     pv = build_positions_view(trading)
-    exposure = pv.exposure()
-    active = len(pv.wheel_names())
+    pending = pending_option_underlyings(trading)
+    # Count pending sell-to-open puts toward exposure + active names so caps and
+    # the max-tickers limit hold even before orders fill.
+    exposure = pv.exposure() + sum(p["strike"] * 100 for p in pending.values() if p["type"] == "put")
+    active = len(pv.wheel_names() | set(pending))
     today = datetime.now(timezone.utc).date()
 
     log.info("equity=$%.0f exposure=$%.0f (%.0f%%) names=%d",
              equity, exposure, exposure / equity * 100 if equity else 0, active)
 
     for sym in cfg.universe:
+        if sym in pending:
+            summary["skipped"].append(f"{sym}: order already pending")
+            continue
         opt_type = pv.options.get(sym, {}).get("type")
         share_qty = pv.shares.get(sym, {}).get("qty", 0.0)
         state = reconstruct_state(opt_type, share_qty)
