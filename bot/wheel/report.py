@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
 
 from alpaca.trading.client import TradingClient
@@ -101,8 +100,11 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
         })
 
     exposure = pv.exposure() + sum(o["strike"] * 100 for o in pending if o["type"] == "put")
+    # NOTE: intentionally no high-resolution timestamp here. Running every 15 min,
+    # a changing timestamp would make every run commit wheel.json and trigger a
+    # Cloudflare Pages rebuild (500/mo free limit). Without it, the file only
+    # changes — and only rebuilds — when the actual wheel data changes.
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "enabled": cfg.enabled,
         "equity": round(equity, 2),
         "exposure_pct": round(exposure / equity * 100, 1) if equity else 0,
