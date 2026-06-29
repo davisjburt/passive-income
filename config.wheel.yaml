@@ -1,41 +1,46 @@
 # ------------------------------------------------------------------
-# Moderate-risk options WHEEL config. Separate from config.yaml (the RSI bot).
+# Options WHEEL config — SMALL-ACCOUNT ($10k) profile.
 # Cash-secured puts + covered calls only. No naked options, no margin.
-# enabled:false and wheel_run.py defaults to --dry-run, so nothing trades
-# until you (a) enable options Level 1 on the account and (b) opt in.
+#
+# REALITY CHECK: one contract = 100 shares, so on a $10k account a single
+# cash-secured put is ~10% of equity no matter what. To fit, the universe must
+# be low-priced (~$5-13) and the per-stock cap is 10% (the floor, not 5-8%).
+# These are more volatile / less blue-chip than the large-cap version. This is
+# the unavoidable cost of running a CSP wheel on $10k.
+#
+# enabled:true but NOT in any workflow; wheel_run.py is dry-run unless --live.
 # ------------------------------------------------------------------
 
 enabled: true
 
-# Lower-priced, liquid, optionable names so one contract (strike x 100) fits a
-# smaller account. Still established companies with tight option spreads.
-# Approx prices: F ~$12, T ~$22, KMI ~$20, INTC ~$25, PFE ~$26, BAC ~$42,
-# CSCO ~$50, VZ ~$43 (verify live).
+# Low-priced, liquid, optionable names so one contract fits a $10k account.
+# Approx prices (verify live): F ~$12, AAL ~$13, SOFI ~$11, VALE ~$11,
+# WBD ~$10, NIO ~$5, KGC ~$10, CLF ~$10.
 universe:
   - F      # Ford
-  - T      # AT&T
-  - KMI    # Kinder Morgan
-  - INTC   # Intel
-  - PFE    # Pfizer
-  - BAC    # Bank of America
-  - CSCO   # Cisco
-  - VZ     # Verizon
+  - AAL    # American Airlines
+  - SOFI   # SoFi
+  - VALE   # Vale
+  - WBD    # Warner Bros Discovery
+  - NIO    # NIO
+  - KGC    # Kinross Gold
+  - CLF    # Cleveland-Cliffs
 
-max_wheel_tickers: 5          # 3-6 simultaneous wheel names (concentration guard)
-per_stock_cap_pct: 0.08       # <=5-10% of equity per underlying when fully assigned
-portfolio_wheel_cap_pct: 0.45 # 40-50% total wheel exposure (put cash + share notional)
+max_wheel_tickers: 4          # ~4 x ~$1,000 puts ≈ 40% deployed on $10k
+per_stock_cap_pct: 0.10       # one contract is ~10% of a $10k account (the floor)
+portfolio_wheel_cap_pct: 0.45 # 40-50% total wheel exposure
 
 put:
-  otm_pct: [0.10, 0.15]       # strike 10-15% BELOW spot (would be happy to own here)
+  otm_pct: [0.10, 0.18]       # 10-18% below spot; deeper strikes also fit the $ cap
   dte: [30, 45]
-  min_annual_yield: 0.10      # require >=10% annualized on reserved cash
+  min_annual_yield: 0.08      # 8%+ annualized on reserved cash
 
 call:
-  otm_above_basis_pct: [0.05, 0.10]  # strike 5-10% ABOVE basis/price (capped upside)
+  otm_above_basis_pct: [0.05, 0.10]  # 5-10% above basis/price
   dte: [30, 45]
-  min_annual_yield: 0.10
+  min_annual_yield: 0.08
 
 safeguards:
   halt_new_puts_drawdown_pct: 0.20   # underlying <= -20% vs entry/basis -> no new puts
   order_type: limit                  # never market-order options (wide spreads)
-  limit_slippage_pct: 0.02           # shave limit this far below bid to improve fills
+  limit_slippage_pct: 0.02
