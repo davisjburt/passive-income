@@ -21,7 +21,7 @@
     "premium_collected": 0.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
-    "entry_price": 0.0
+    "entry_price": 15.105
   },
   "WBD": {
     "premium_collected": 0.0,
@@ -46,5 +46,29 @@
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 9.405000000000001
+  },
+  "MARA": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0
+  },
+  "RIOT": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0
+  },
+  "AMC": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0
+  },
+  "SNDL": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0
   }
 }

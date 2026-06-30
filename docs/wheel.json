@@ -1,10 +1,19 @@
 {
   "enabled": true,
-  "equity": 9980.91,
-  "exposure_pct": 12.5,
-  "total_premium_collected": 36.0,
-  "total_realized_pnl": 36.0,
+  "equity": 9978.85,
+  "exposure_pct": 88.2,
+  "total_premium_collected": 165.0,
+  "total_realized_pnl": 165.0,
   "option_positions": [
+    {
+      "underlying": "AAL",
+      "type": "put",
+      "strike": 17.5,
+      "expiration": "2026-07-10",
+      "qty": -1.0,
+      "market_value": -43.0,
+      "unrealized_pl": -1.0
+    },
     {
       "underlying": "CLF",
       "type": "put",
@@ -15,46 +24,77 @@
       "unrealized_pl": -14.0
     },
     {
+      "underlying": "MARA",
+      "type": "put",
+      "strike": 13.0,
+      "expiration": "2026-07-10",
+      "qty": -1.0,
+      "market_value": -61.0,
+      "unrealized_pl": -4.0
+    },
+    {
       "underlying": "NIO",
       "type": "put",
       "strike": 4.5,
       "expiration": "2026-08-07",
       "qty": -1.0,
-      "market_value": -20.0,
-      "unrealized_pl": -5.0
+      "market_value": -18.0,
+      "unrealized_pl": -3.0
+    },
+    {
+      "underlying": "SOFI",
+      "type": "put",
+      "strike": 17.0,
+      "expiration": "2026-07-10",
+      "qty": -1.0,
+      "market_value": -29.0,
+      "unrealized_pl": 1.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "VALE",
+      "type": "put",
+      "strike": 14.5,
+      "expiration": "2026-07-17",
+      "limit": 0.21,
+      "status": "new",
+      "side": "sell"
+    },
+    {
+      "underlying": "F",
+      "type": "put",
+      "strike": 13.5,
+      "expiration": "2026-07-10",
+      "limit": 0.14,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
-      "symbol": "F",
+      "symbol": "MARA",
+      "state": "PUT_OPEN",
+      "premium_collected": 57.0,
+      "realized_pnl": 57.0
+    },
+    {
+      "symbol": "RIOT",
       "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
     },
     {
-      "symbol": "AAL",
+      "symbol": "AMC",
       "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
     },
     {
       "symbol": "SOFI",
-      "state": "CASH",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
-    },
-    {
-      "symbol": "VALE",
-      "state": "CASH",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
-    },
-    {
-      "symbol": "WBD",
-      "state": "CASH",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "state": "PUT_OPEN",
+      "premium_collected": 30.0,
+      "realized_pnl": 30.0
     },
     {
       "symbol": "NIO",
@@ -63,7 +103,19 @@
       "realized_pnl": 15.0
     },
     {
-      "symbol": "KGC",
+      "symbol": "F",
+      "state": "ORDER_PENDING",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0
+    },
+    {
+      "symbol": "AAL",
+      "state": "PUT_OPEN",
+      "premium_collected": 42.0,
+      "realized_pnl": 42.0
+    },
+    {
+      "symbol": "SNDL",
       "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
@@ -73,6 +125,12 @@
       "state": "PUT_OPEN",
       "premium_collected": 21.0,
       "realized_pnl": 21.0
+    },
+    {
+      "symbol": "VALE",
+      "state": "ORDER_PENDING",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0
     }
   ]
 }
