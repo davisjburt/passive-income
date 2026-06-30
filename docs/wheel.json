@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "equity": 9978.85,
+  "equity": 9980.85,
   "exposure_pct": 88.2,
   "total_premium_collected": 165.0,
   "total_realized_pnl": 165.0,
@@ -29,8 +29,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -61.0,
-      "unrealized_pl": -4.0
+      "market_value": -60.0,
+      "unrealized_pl": -3.0
     },
     {
       "underlying": "NIO",
@@ -47,8 +47,8 @@
       "strike": 17.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -29.0,
-      "unrealized_pl": 1.0
+      "market_value": -28.0,
+      "unrealized_pl": 2.0
     }
   ],
   "pending_orders": [
