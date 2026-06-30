@@ -4,34 +4,47 @@
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 20.715,
-    "rolls": 0
+    "rolls": 0,
+    "last_state": "",
+    "drawdown_halt_alerted": false
   },
   "PFE": {
     "premium_collected": 0.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 0.0,
-    "rolls": 0
+    "rolls": 0,
+    "last_state": "",
+    "drawdown_halt_alerted": false
   },
   "F": {
     "premium_collected": 0.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 13.895,
-    "rolls": 0
+    "rolls": 0,
+    "last_state": "",
+    "drawdown_halt_alerted": false
   },
   "KEY": {
     "premium_collected": 0.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 0.0,
-    "rolls": 0
+    "rolls": 0,
+    "last_state": "",
+    "drawdown_halt_alerted": false
   },
   "SOFI": {
     "premium_collected": 0.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 17.925,
-    "rolls": 0
+    "rolls": 0,
+    "last_state": "",
+    "drawdown_halt_alerted": false
+  },
+  "_meta": {
+    "morning_date": "2026-06-30"
   }
 }
