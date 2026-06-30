@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9979.83,
-  "exposure_pct": 88.2,
+  "equity": 9983.83,
+  "exposure_pct": 88.1,
   "total_premium_collected": 179.0,
   "total_realized_pnl": 179.0,
   "option_positions": [
@@ -11,8 +11,8 @@
       "strike": 17.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -43.0,
-      "unrealized_pl": -1.0
+      "market_value": -41.0,
+      "unrealized_pl": 1.0
     },
     {
       "underlying": "CLF",
@@ -56,8 +56,8 @@
       "strike": 17.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -28.0,
-      "unrealized_pl": 2.0
+      "market_value": -26.0,
+      "unrealized_pl": 4.0
     }
   ],
   "pending_orders": [
