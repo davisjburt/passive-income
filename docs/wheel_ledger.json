@@ -1,1 +1,37 @@
-{}
+{
+  "T": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 20.715,
+    "rolls": 0
+  },
+  "PFE": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0,
+    "rolls": 0
+  },
+  "F": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 13.895,
+    "rolls": 0
+  },
+  "KEY": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0,
+    "rolls": 0
+  },
+  "SOFI": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 17.925,
+    "rolls": 0
+  }
+}

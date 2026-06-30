@@ -1,79 +1,43 @@
 {
   "enabled": true,
-  "equity": 9987.81,
-  "exposure_pct": 88.1,
-  "total_premium_collected": 200.0,
-  "total_realized_pnl": 200.0,
-  "option_positions": [
+  "equity": 9990.67,
+  "exposure_pct": 46.5,
+  "total_premium_collected": 44.0,
+  "total_realized_pnl": -2.0,
+  "option_positions": [],
+  "pending_orders": [
     {
-      "underlying": "AAL",
+      "underlying": "SOFI",
       "type": "put",
-      "strike": 17.5,
-      "expiration": "2026-07-10",
-      "qty": -1.0,
-      "market_value": -44.0,
-      "unrealized_pl": -2.0
-    },
-    {
-      "underlying": "CLF",
-      "type": "put",
-      "strike": 8.0,
+      "strike": 16.0,
       "expiration": "2026-07-31",
-      "qty": -1.0,
-      "market_value": -35.0,
-      "unrealized_pl": -14.0
+      "limit": 0.56,
+      "status": "new",
+      "side": "sell"
     },
     {
       "underlying": "F",
       "type": "put",
-      "strike": 13.5,
-      "expiration": "2026-07-10",
-      "qty": -1.0,
-      "market_value": -16.0,
-      "unrealized_pl": -2.0
+      "strike": 12.5,
+      "expiration": "2026-07-31",
+      "limit": 0.21,
+      "status": "new",
+      "side": "sell"
     },
     {
-      "underlying": "MARA",
+      "underlying": "T",
       "type": "put",
-      "strike": 13.0,
-      "expiration": "2026-07-10",
-      "qty": -1.0,
-      "market_value": -51.0,
-      "unrealized_pl": 6.0
-    },
-    {
-      "underlying": "NIO",
-      "type": "put",
-      "strike": 4.5,
+      "strike": 18.0,
       "expiration": "2026-08-07",
-      "qty": -1.0,
-      "market_value": -15.0,
-      "unrealized_pl": 0.0
-    },
-    {
-      "underlying": "SOFI",
-      "type": "put",
-      "strike": 17.0,
-      "expiration": "2026-07-10",
-      "qty": -1.0,
-      "market_value": -30.0,
-      "unrealized_pl": 0.0
-    },
-    {
-      "underlying": "VALE",
-      "type": "put",
-      "strike": 14.5,
-      "expiration": "2026-07-17",
-      "qty": -1.0,
-      "market_value": -21.0,
-      "unrealized_pl": 0.0
+      "limit": 0.15,
+      "status": "new",
+      "side": "sell"
     }
   ],
-  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
-      "state": "CASH",
+      "state": "ORDER_PENDING",
       "premium_collected": 0.0,
       "realized_pnl": 0.0,
       "orphaned": false
@@ -87,9 +51,9 @@
     },
     {
       "symbol": "F",
-      "state": "PUT_OPEN",
+      "state": "ORDER_PENDING",
       "premium_collected": 14.0,
-      "realized_pnl": 14.0,
+      "realized_pnl": -2.0,
       "orphaned": false
     },
     {
@@ -101,45 +65,10 @@
     },
     {
       "symbol": "SOFI",
-      "state": "PUT_OPEN",
+      "state": "ORDER_PENDING",
       "premium_collected": 30.0,
-      "realized_pnl": 30.0,
+      "realized_pnl": 0.0,
       "orphaned": false
-    },
-    {
-      "symbol": "AAL",
-      "state": "PUT_OPEN",
-      "premium_collected": 42.0,
-      "realized_pnl": 42.0,
-      "orphaned": true
-    },
-    {
-      "symbol": "CLF",
-      "state": "PUT_OPEN",
-      "premium_collected": 21.0,
-      "realized_pnl": 21.0,
-      "orphaned": true
-    },
-    {
-      "symbol": "MARA",
-      "state": "PUT_OPEN",
-      "premium_collected": 57.0,
-      "realized_pnl": 57.0,
-      "orphaned": true
-    },
-    {
-      "symbol": "NIO",
-      "state": "PUT_OPEN",
-      "premium_collected": 15.0,
-      "realized_pnl": 15.0,
-      "orphaned": true
-    },
-    {
-      "symbol": "VALE",
-      "state": "PUT_OPEN",
-      "premium_collected": 21.0,
-      "realized_pnl": 21.0,
-      "orphaned": true
     }
   ]
 }
