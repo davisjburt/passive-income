@@ -4,8 +4,7 @@
     python wheel_run.py --live       # actually place orders (requires options Level 1
                                      #   enabled AND enabled:true in config.wheel.yaml)
 
-This is separate from the RSI bot (run.py). It is intentionally NOT wired into any
-GitHub Actions workflow yet — add one only after you've validated dry-runs.
+Triggered every 5 min via Cloudflare Worker → wheel.yml workflow_dispatch.
 """
 
 from __future__ import annotations
@@ -46,6 +45,11 @@ def main() -> int:
 
     print("\n--- Wheel summary ---")
     print(f"Exposure: {summary.get('exposure_pct', 0)}% of equity")
+    metrics = summary.get("metrics", {})
+    if metrics:
+        rolled = {s: m["rolls"] for s, m in metrics.items() if m.get("rolls")}
+        if rolled:
+            print("Rolls this position: " + ", ".join(f"{s}×{n}" for s, n in rolled.items()))
     print("Orders:")
     for a in summary.get("actions", []) or ["(none)"]:
         print(f"  - {a}")

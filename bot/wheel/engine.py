@@ -276,9 +276,12 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                                   cfg.per_stock_cap_pct, exposure, cfg.portfolio_wheel_cap_pct)
                 if pick:
                     new_c, y = pick
-                    _execute_roll(trading, opt, occ, new_c,
-                                  cfg.safeguards.limit_slippage_pct,
-                                  dry_run, summary, ledger.get(sym))
+                    rolled = _execute_roll(trading, opt, occ, new_c,
+                                           cfg.safeguards.limit_slippage_pct,
+                                           dry_run, summary, ledger.get(sym))
+                    if rolled:
+                        # Adjust exposure: swap old put's capital requirement for new one.
+                        exposure += (new_c.strike - put_strike) * 100
                 else:
                     summary["skipped"].append(f"{sym}: PUT near ITM but no roll candidate")
             elif not spot:
@@ -375,7 +378,10 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
     msg = (f"ROLL {occ} -> {new_c.symbol}: "
            f"BTC limit ${btc_limit:.2f} | STO limit ${sto_limit:.2f} "
            f"| net ${net_credit * 100:.2f}/contract")
-    if dry_run or sto_limit <= 0:
+    if sto_limit <= 0:
+        log.warning("ROLL: STO limit <= 0 for %s — skipping", new_c.symbol)
+        return False
+    if dry_run:
         log.info("[dry-run] %s", msg)
         summary["actions"].append(f"[dry-run] {msg}")
         return False

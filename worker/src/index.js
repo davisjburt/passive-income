@@ -3,7 +3,7 @@
 // GitHub's own scheduled (cron) events are best-effort and frequently delayed or
 // dropped, especially for short intervals. A workflow_dispatch, by contrast, runs
 // promptly. So this Worker fires on Cloudflare's (reliable) cron and pokes GitHub
-// to dispatch the wheel workflow every 15 minutes during market hours.
+// to dispatch the wheel workflow every 5 minutes during market hours.
 
 const REPO = "davisjburt/passive-income";
 const WORKFLOW = "wheel.yml";
