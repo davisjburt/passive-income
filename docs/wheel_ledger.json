@@ -45,6 +45,7 @@
     "drawdown_halt_alerted": false
   },
   "_meta": {
-    "morning_date": "2026-06-30"
+    "morning_date": "2026-06-30",
+    "eod_date": "2026-06-30"
   }
 }

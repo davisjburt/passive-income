@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9986.63,
-  "exposure_pct": 46.6,
+  "equity": 9984.63,
+  "exposure_pct": 34.1,
   "total_premium_collected": 115.0,
   "total_realized_pnl": 69.0,
   "option_positions": [
@@ -11,8 +11,8 @@
       "strike": 16.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -55.0,
-      "unrealized_pl": 1.0
+      "market_value": -57.0,
+      "unrealized_pl": -1.0
     },
     {
       "underlying": "T",
@@ -24,17 +24,7 @@
       "unrealized_pl": -5.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "F",
-      "type": "put",
-      "strike": 12.5,
-      "expiration": "2026-07-31",
-      "limit": 0.21,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
@@ -52,7 +42,7 @@
     },
     {
       "symbol": "F",
-      "state": "ORDER_PENDING",
+      "state": "CASH",
       "premium_collected": 14.0,
       "realized_pnl": -2.0,
       "orphaned": false
