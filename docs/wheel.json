@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "equity": 9990.81,
+  "equity": 9991.81,
   "exposure_pct": 88.1,
   "total_premium_collected": 44.0,
   "total_realized_pnl": 44.0,
@@ -65,8 +65,8 @@
       "strike": 14.5,
       "expiration": "2026-07-17",
       "qty": -1.0,
-      "market_value": -21.0,
-      "unrealized_pl": 0.0
+      "market_value": -20.0,
+      "unrealized_pl": 1.0
     }
   ],
   "pending_orders": [],
