@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -36,6 +37,8 @@ from .strategy import (
     reconstruct_state,
     select_call,
     select_put,
+    should_roll_call,
+    should_roll_put,
 )
 
 log = logging.getLogger("wheel")
@@ -217,7 +220,17 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     log.info("equity=$%.0f exposure=$%.0f (%.0f%%) names=%d",
              equity, exposure, exposure / equity * 100 if equity else 0, active)
 
-    for sym in cfg.universe:
+    # Extend the loop to cover positions that exist in the broker but have been
+    # removed from the configured universe (e.g. switching from aggressive to
+    # conservative universe). These are managed in roll-only mode: the bot rolls
+    # them if near ITM but never opens fresh positions on them.
+    universe_set = set(cfg.universe)
+    orphaned = sorted(pv.wheel_names() - universe_set)
+    if orphaned:
+        log.info("Orphaned positions (roll-only, outside universe): %s", orphaned)
+
+    for sym in list(cfg.universe) + orphaned:
+        in_universe = sym in universe_set
         if sym in pending:
             summary["skipped"].append(f"{sym}: order already pending")
             continue
@@ -226,6 +239,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         state = reconstruct_state(opt_type, share_qty)
 
         if state == WheelState.CASH:
+            if not in_universe:
+                continue  # orphaned symbol returned to cash — don't open new positions
             if active >= cfg.max_wheel_tickers:
                 summary["skipped"].append(f"{sym}: at max wheel names"); continue
             spot = get_spot(data, sym)
@@ -248,6 +263,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             active += 1
 
         elif state == WheelState.LONG_STOCK:
+            if not in_universe:
+                continue  # orphaned symbol holding shares — don't sell calls, let expire/manual
             shr = pv.shares[sym]
             basis = ledger.get(sym).cost_basis or shr["basis"]
             cands = fetch_contracts(
@@ -268,7 +285,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             dte_remaining = (exp - today).days if exp else 0
             spot = get_spot(data, sym)
             if spot and (dte_remaining > MIN_DTE_TO_ROLL
-                         and spot <= put_strike * (1 + ROLL_TRIGGER_PUT)
+                         and should_roll_put(spot, put_strike, ROLL_TRIGGER_PUT)
                          and ledger.get(sym).rolls < MAX_ROLLS):
                 lo, hi = put_strike_band(spot, cfg.put.band)
                 cands = fetch_contracts(opt, sym, "put", lo, hi, cfg.put.dte, today)
@@ -295,7 +312,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             dte_remaining = (exp - today).days if exp else 0
             spot = get_spot(data, sym)
             if spot and (dte_remaining > MIN_DTE_TO_ROLL
-                         and spot >= call_strike * (1 - ROLL_TRIGGER_CALL)
+                         and should_roll_call(spot, call_strike, ROLL_TRIGGER_CALL)
                          and ledger.get(sym).rolls < MAX_ROLLS):
                 shr = pv.shares.get(sym, {})
                 basis = ledger.get(sym).cost_basis or shr.get("basis", spot)
@@ -327,6 +344,43 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         ledger.save()
     summary["exposure_pct"] = round(exposure / equity * 100, 1) if equity else 0
     return summary
+
+
+def _alert(text: str) -> None:
+    """Fire-and-forget Telegram notification. Never raises."""
+    try:
+        from bot.notify import send_telegram  # lazy import — keep engine testable without Telegram env
+        send_telegram(text)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("alert send failed: %s", exc)
+
+
+def _wait_for_fill(trading: TradingClient, order_id: str,
+                   timeout_s: int = 45, poll_s: int = 5) -> bool:
+    """Poll an order until it fills or reaches a terminal non-fill status.
+
+    We wait before placing the STO leg of a roll so that if the BTC doesn't fill
+    (e.g. limit too tight, illiquid), the STO is never submitted and the position
+    remains intact. This prevents the partial-roll scenario where BTC fills but STO
+    is never placed, leaving the account without coverage until the next cycle.
+    """
+    _FILLED = {"filled", "partially_filled"}
+    _TERMINAL = {"cancelled", "expired", "rejected", "done_for_day"}
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        try:
+            o = trading.get_order_by_id(order_id)
+            status = getattr(o.status, "value", str(o.status))
+            if status in _FILLED:
+                return True
+            if status in _TERMINAL:
+                log.warning("order %s ended with status %s", order_id, status)
+                return False
+        except Exception as exc:  # noqa: BLE001
+            log.warning("poll order %s failed: %s", order_id, exc)
+        time.sleep(poll_s)
+    log.warning("order %s did not fill within %ds", order_id, timeout_s)
+    return False
 
 
 def _current_ask(opt: OptionHistoricalDataClient, occ: str) -> float | None:
@@ -389,9 +443,17 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
         btc = trading.submit_order(LimitOrderRequest(
             symbol=occ, qty=1, side=OrderSide.BUY,
             time_in_force=TimeInForce.DAY, limit_price=btc_limit))
-        log.info("BTC %s -> order %s", occ, btc.id)
+        log.info("BTC %s -> order %s (awaiting fill)", occ, btc.id)
     except Exception as exc:  # noqa: BLE001
         log.error("BTC order failed for %s: %s", occ, exc)
+        return False
+    # Wait for the BTC to fill before placing STO. If BTC doesn't fill (e.g. stale
+    # ask, illiquid market), the STO is never submitted — the position stays open
+    # and rolls is not incremented. The next cycle will retry.
+    if not _wait_for_fill(trading, str(btc.id)):
+        log.warning("ROLL: BTC %s did not fill — STO skipped, will retry next cycle", occ)
+        _alert(f"⚠️ *Wheel roll* — BTC `{occ}` did not fill within 45s. "
+               f"STO skipped; bot will retry next cycle.")
         return False
     try:
         sto = trading.submit_order(LimitOrderRequest(
@@ -399,12 +461,13 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
             time_in_force=TimeInForce.DAY, limit_price=sto_limit))
         log.info("STO %s -> order %s", new_c.symbol, sto.id)
     except Exception as exc:  # noqa: BLE001
-        log.error("STO order failed for %s; BTC is open — manual check needed: %s",
-                  new_c.symbol, exc)
+        log.error("STO failed for %s after BTC filled: %s", new_c.symbol, exc)
+        _alert(f"⚠️ *Wheel roll* — BTC `{occ}` filled but STO `{new_c.symbol}` failed. "
+               f"Position closed; next cycle opens a fresh put.")
         return False
     summary["actions"].append(msg)
-    led.rolls += 1
-    led.premium_collected += net_credit * 100  # net credit collected on the roll
+    led.rolls += 1                             # only incremented after both legs confirmed
+    led.premium_collected += net_credit * 100
     return True
 
 

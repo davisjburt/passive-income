@@ -9,6 +9,10 @@ on:
 
 concurrency:
   group: wheel
+  # false = don't cancel the running job when a new trigger arrives.
+  # GitHub queues the newcomer and discards any older queued run, so queue
+  # depth is always ≤ 1. Cancelling mid-run risks interrupting an order
+  # submission, which is worse than a brief delay.
   cancel-in-progress: false
 
 permissions:

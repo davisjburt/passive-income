@@ -88,6 +88,16 @@ def call_strike_band(reference: float, otm_above: tuple[float, float]) -> tuple[
 
 # ---------- caps ----------
 
+def should_roll_put(spot: float, put_strike: float, trigger_pct: float) -> bool:
+    """True when the put is within trigger_pct above (or below) the strike — time to roll."""
+    return spot <= put_strike * (1 + trigger_pct)
+
+
+def should_roll_call(spot: float, call_strike: float, trigger_pct: float) -> bool:
+    """True when the spot is within trigger_pct below (or above) the call strike — time to roll."""
+    return spot >= call_strike * (1 - trigger_pct)
+
+
 def per_stock_ok(notional: float, equity: float, cap_pct: float) -> bool:
     return notional <= equity * cap_pct + 1e-9
 

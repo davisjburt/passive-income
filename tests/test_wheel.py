@@ -16,6 +16,8 @@ from bot.wheel.strategy import (
     reconstruct_state,
     select_call,
     select_put,
+    should_roll_call,
+    should_roll_put,
 )
 
 TODAY = date(2026, 1, 1)
@@ -127,6 +129,35 @@ def test_select_call_anchors_above_price_when_underwater():
     ]
     pick = select_call(cands, basis=100, current_price=120, rules=rules, today=TODAY)
     assert pick is not None and pick[0].strike == 128
+
+
+# ---- roll triggers ----
+
+def test_roll_trigger_put():
+    # Roll when spot is within 5% OTM (approaching strike from above) or ITM.
+    assert should_roll_put(105.0, 100.0, 0.05) is True   # exactly 5% OTM — boundary
+    assert should_roll_put(104.9, 100.0, 0.05) is True   # just inside 5% buffer
+    assert should_roll_put(98.0, 100.0, 0.05) is True    # ITM → definitely roll
+    assert should_roll_put(105.1, 100.0, 0.05) is False  # 5.1% OTM — safe, no roll
+
+
+def test_roll_trigger_call():
+    # Roll when spot is within 3% OTM (approaching call strike from below) or ITM.
+    assert should_roll_call(97.0, 100.0, 0.03) is True   # exactly 3% OTM — boundary
+    assert should_roll_call(97.1, 100.0, 0.03) is True   # just inside 3% buffer
+    assert should_roll_call(103.0, 100.0, 0.03) is True  # ITM → definitely roll
+    assert should_roll_call(96.9, 100.0, 0.03) is False  # 3.1% OTM — safe, no roll
+
+
+def test_aggregate_premium_debit_can_produce_negative_realized():
+    fills = [
+        {"underlying": "MARA", "side": "sell", "credit": 50.0},
+        {"underlying": "MARA", "side": "buy", "credit": 80.0},  # roll cost more than premium
+    ]
+    agg = aggregate_premium(fills)
+    assert agg["MARA"]["realized"] == -30.0  # net loss from rolling
+    assert agg["MARA"]["gross_premium"] == 50.0
+    assert agg["MARA"]["debits"] == 80.0
 
 
 # ---- notifications ----
