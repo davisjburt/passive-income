@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "equity": 9996.83,
-  "exposure_pct": 88.0,
-  "total_premium_collected": 179.0,
-  "total_realized_pnl": 179.0,
+  "equity": 9993.81,
+  "exposure_pct": 88.1,
+  "total_premium_collected": 200.0,
+  "total_realized_pnl": 200.0,
   "option_positions": [
     {
       "underlying": "AAL",
@@ -11,8 +11,8 @@
       "strike": 17.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -41.0,
-      "unrealized_pl": 1.0
+      "market_value": -39.0,
+      "unrealized_pl": 3.0
     },
     {
       "underlying": "CLF",
@@ -29,8 +29,8 @@
       "strike": 13.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -15.0,
-      "unrealized_pl": -1.0
+      "market_value": -16.0,
+      "unrealized_pl": -2.0
     },
     {
       "underlying": "MARA",
@@ -38,8 +38,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -51.0,
-      "unrealized_pl": 6.0
+      "market_value": -53.0,
+      "unrealized_pl": 4.0
     },
     {
       "underlying": "NIO",
@@ -56,21 +56,20 @@
       "strike": 17.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -25.0,
-      "unrealized_pl": 5.0
-    }
-  ],
-  "pending_orders": [
+      "market_value": -26.0,
+      "unrealized_pl": 4.0
+    },
     {
       "underlying": "VALE",
       "type": "put",
       "strike": 14.5,
       "expiration": "2026-07-17",
-      "limit": 0.21,
-      "status": "new",
-      "side": "sell"
+      "qty": -1.0,
+      "market_value": -22.0,
+      "unrealized_pl": -1.0
     }
   ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "MARA",
@@ -128,9 +127,9 @@
     },
     {
       "symbol": "VALE",
-      "state": "ORDER_PENDING",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "state": "PUT_OPEN",
+      "premium_collected": 21.0,
+      "realized_pnl": 21.0
     }
   ]
 }
