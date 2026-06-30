@@ -43,9 +43,15 @@ class Contract:
     strike: float
     expiration: date
     bid: float           # credit per share (x100 for one contract)
+    ask: float = 0.0     # debit per share when buying to close
 
     def dte(self, today: date) -> int:
         return (self.expiration - today).days
+
+    @property
+    def mark(self) -> float:
+        """Mid price; falls back to bid if ask unavailable."""
+        return (self.bid + self.ask) / 2 if self.ask else self.bid
 
 
 def parse_occ(occ: str) -> tuple[str, date, str, float]:

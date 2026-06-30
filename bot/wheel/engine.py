@@ -41,6 +41,11 @@ from .strategy import (
 log = logging.getLogger("wheel")
 LEDGER_PATH = Path(__file__).resolve().parents[2] / "docs" / "wheel_ledger.json"
 
+ROLL_TRIGGER_PUT  = 0.05  # roll put when spot ≤ strike × 1.05 (5% ITM buffer)
+ROLL_TRIGGER_CALL = 0.03  # roll call when spot ≥ strike × 0.97 (3% ITM buffer)
+MAX_ROLLS         = 3
+MIN_DTE_TO_ROLL   = 7
+
 
 # ---------------- ledger ----------------
 
@@ -50,6 +55,7 @@ class SymbolLedger:
     realized_pnl: float = 0.0
     cost_basis: float = 0.0   # set on assignment = strike - put premium/share
     entry_price: float = 0.0  # underlying price when the wheel started (for drawdown)
+    rolls: int = 0             # number of times this position has been rolled (capped at MAX_ROLLS)
 
 
 class Ledger:
@@ -174,7 +180,8 @@ def fetch_contracts(opt: OptionHistoricalDataClient, underlying: str, ctype: str
             continue
         quote = getattr(snap, "latest_quote", None)
         bid = float(getattr(quote, "bid_price", 0) or 0) if quote else 0.0
-        out.append(Contract(occ, under, typ, strike, exp, bid))
+        ask = float(getattr(quote, "ask_price", 0) or 0) if quote else 0.0
+        out.append(Contract(occ, under, typ, strike, exp, bid, ask))
     return out
 
 
@@ -253,8 +260,56 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             c, y = pick
             _sell_to_open(trading, c, y, cfg, dry_run, summary)
 
-        # PUT_OPEN / CALL_OPEN: monitor only. Assignment/expiry handled by Alpaca;
-        # the next run reconstructs the resulting state.
+        elif state == WheelState.PUT_OPEN:
+            opt_info = pv.options.get(sym, {})
+            occ = opt_info.get("occ", "")
+            put_strike = opt_info.get("strike", 0.0)
+            exp = opt_info.get("exp")
+            dte_remaining = (exp - today).days if exp else 0
+            spot = get_spot(data, sym)
+            if spot and (dte_remaining > MIN_DTE_TO_ROLL
+                         and spot <= put_strike * (1 + ROLL_TRIGGER_PUT)
+                         and ledger.get(sym).rolls < MAX_ROLLS):
+                lo, hi = put_strike_band(spot, cfg.put.band)
+                cands = fetch_contracts(opt, sym, "put", lo, hi, cfg.put.dte, today)
+                pick = select_put(cands, spot, cfg.put, today, equity,
+                                  cfg.per_stock_cap_pct, exposure, cfg.portfolio_wheel_cap_pct)
+                if pick:
+                    new_c, y = pick
+                    _execute_roll(trading, opt, occ, new_c,
+                                  cfg.safeguards.limit_slippage_pct,
+                                  dry_run, summary, ledger.get(sym))
+                else:
+                    summary["skipped"].append(f"{sym}: PUT near ITM but no roll candidate")
+            elif not spot:
+                summary["skipped"].append(f"{sym}: no quote for roll check")
+
+        elif state == WheelState.CALL_OPEN:
+            opt_info = pv.options.get(sym, {})
+            occ = opt_info.get("occ", "")
+            call_strike = opt_info.get("strike", 0.0)
+            exp = opt_info.get("exp")
+            dte_remaining = (exp - today).days if exp else 0
+            spot = get_spot(data, sym)
+            if spot and (dte_remaining > MIN_DTE_TO_ROLL
+                         and spot >= call_strike * (1 - ROLL_TRIGGER_CALL)
+                         and ledger.get(sym).rolls < MAX_ROLLS):
+                shr = pv.shares.get(sym, {})
+                basis = ledger.get(sym).cost_basis or shr.get("basis", spot)
+                cands = fetch_contracts(
+                    opt, sym, "call",
+                    *call_strike_band(max(basis, spot), cfg.call.band),
+                    cfg.call.dte, today)
+                pick = select_call(cands, basis, spot, cfg.call, today)
+                if pick:
+                    new_c, y = pick
+                    _execute_roll(trading, opt, occ, new_c,
+                                  cfg.safeguards.limit_slippage_pct,
+                                  dry_run, summary, ledger.get(sym))
+                else:
+                    summary["skipped"].append(f"{sym}: CALL near ITM but no roll candidate")
+            elif not spot:
+                summary["skipped"].append(f"{sym}: no quote for roll check")
 
         led = ledger.get(sym)
         summary["metrics"][sym] = {
@@ -262,12 +317,89 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             "premium_collected": round(led.premium_collected, 2),
             "cost_basis": round(led.cost_basis, 2),
             "realized_pnl": round(led.realized_pnl, 2),
+            "rolls": led.rolls,
         }
 
     if not dry_run:
         ledger.save()
     summary["exposure_pct"] = round(exposure / equity * 100, 1) if equity else 0
     return summary
+
+
+def _current_ask(opt: OptionHistoricalDataClient, occ: str) -> float | None:
+    """Fetch the live ask price for a specific OCC option symbol."""
+    try:
+        under, exp, typ, strike = parse_occ(occ)
+    except ValueError:
+        return None
+    req = OptionChainRequest(
+        underlying_symbol=under,
+        feed="indicative",
+        type=ContractType.PUT if typ == "put" else ContractType.CALL,
+        strike_price_gte=strike - 0.01,
+        strike_price_lte=strike + 0.01,
+        expiration_date_gte=exp.isoformat(),
+        expiration_date_lte=exp.isoformat(),
+    )
+    try:
+        chain = opt.get_option_chain(req)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("ask fetch failed for %s: %s", occ, exc)
+        return None
+    snap = (chain or {}).get(occ)
+    if not snap:
+        return None
+    quote = getattr(snap, "latest_quote", None)
+    val = float(getattr(quote, "ask_price", 0) or 0) if quote else 0.0
+    return val or None
+
+
+def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
+                  occ: str, new_c: Contract, slippage_pct: float,
+                  dry_run: bool, summary: dict, led: SymbolLedger) -> bool:
+    """Buy-to-close the existing option and sell-to-open the new one for a net credit.
+
+    Returns True only if both live orders were submitted successfully.
+    """
+    existing_ask = _current_ask(opt, occ)
+    if not existing_ask:
+        log.warning("ROLL: cannot get ask for %s — skipping", occ)
+        return False
+    net_credit = new_c.bid - existing_ask
+    if net_credit <= 0:
+        log.info("ROLL: no net credit for %s -> %s (%.2f - %.2f = %.2f) — skipping",
+                 occ, new_c.symbol, new_c.bid, existing_ask, net_credit)
+        return False
+    btc_limit = round(existing_ask * (1 + slippage_pct), 2)   # pay slightly over ask to fill
+    sto_limit = round(new_c.bid * (1 - slippage_pct), 2)      # receive slightly under bid
+    msg = (f"ROLL {occ} -> {new_c.symbol}: "
+           f"BTC limit ${btc_limit:.2f} | STO limit ${sto_limit:.2f} "
+           f"| net ${net_credit * 100:.2f}/contract")
+    if dry_run or sto_limit <= 0:
+        log.info("[dry-run] %s", msg)
+        summary["actions"].append(f"[dry-run] {msg}")
+        return False
+    try:
+        btc = trading.submit_order(LimitOrderRequest(
+            symbol=occ, qty=1, side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY, limit_price=btc_limit))
+        log.info("BTC %s -> order %s", occ, btc.id)
+    except Exception as exc:  # noqa: BLE001
+        log.error("BTC order failed for %s: %s", occ, exc)
+        return False
+    try:
+        sto = trading.submit_order(LimitOrderRequest(
+            symbol=new_c.symbol, qty=1, side=OrderSide.SELL,
+            time_in_force=TimeInForce.DAY, limit_price=sto_limit))
+        log.info("STO %s -> order %s", new_c.symbol, sto.id)
+    except Exception as exc:  # noqa: BLE001
+        log.error("STO order failed for %s; BTC is open — manual check needed: %s",
+                  new_c.symbol, exc)
+        return False
+    summary["actions"].append(msg)
+    led.rolls += 1
+    led.premium_collected += net_credit * 100  # net credit collected on the roll
+    return True
 
 
 def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, summary):
