@@ -38,8 +38,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -52.0,
-      "unrealized_pl": 5.0
+      "market_value": -51.0,
+      "unrealized_pl": 6.0
     },
     {
       "underlying": "NIO",
@@ -56,8 +56,8 @@
       "strike": 17.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -26.0,
-      "unrealized_pl": 4.0
+      "market_value": -27.0,
+      "unrealized_pl": 3.0
     },
     {
       "underlying": "VALE",
