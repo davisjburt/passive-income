@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "equity": 9990.81,
+  "equity": 9984.81,
   "exposure_pct": 88.1,
-  "total_premium_collected": 44.0,
-  "total_realized_pnl": 44.0,
+  "total_premium_collected": 200.0,
+  "total_realized_pnl": 200.0,
   "option_positions": [
     {
       "underlying": "AAL",
@@ -29,8 +29,8 @@
       "strike": 13.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -15.0,
-      "unrealized_pl": -1.0
+      "market_value": -17.0,
+      "unrealized_pl": -3.0
     },
     {
       "underlying": "MARA",
@@ -38,8 +38,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -51.0,
-      "unrealized_pl": 6.0
+      "market_value": -53.0,
+      "unrealized_pl": 4.0
     },
     {
       "underlying": "NIO",
@@ -56,8 +56,8 @@
       "strike": 17.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -28.0,
-      "unrealized_pl": 2.0
+      "market_value": -30.0,
+      "unrealized_pl": 0.0
     },
     {
       "underlying": "VALE",
@@ -75,31 +75,71 @@
       "symbol": "T",
       "state": "CASH",
       "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "realized_pnl": 0.0,
+      "orphaned": false
     },
     {
       "symbol": "PFE",
       "state": "CASH",
       "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "realized_pnl": 0.0,
+      "orphaned": false
     },
     {
       "symbol": "F",
       "state": "PUT_OPEN",
       "premium_collected": 14.0,
-      "realized_pnl": 14.0
+      "realized_pnl": 14.0,
+      "orphaned": false
     },
     {
       "symbol": "KEY",
       "state": "CASH",
       "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "realized_pnl": 0.0,
+      "orphaned": false
     },
     {
       "symbol": "SOFI",
       "state": "PUT_OPEN",
       "premium_collected": 30.0,
-      "realized_pnl": 30.0
+      "realized_pnl": 30.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "AAL",
+      "state": "PUT_OPEN",
+      "premium_collected": 42.0,
+      "realized_pnl": 42.0,
+      "orphaned": true
+    },
+    {
+      "symbol": "CLF",
+      "state": "PUT_OPEN",
+      "premium_collected": 21.0,
+      "realized_pnl": 21.0,
+      "orphaned": true
+    },
+    {
+      "symbol": "MARA",
+      "state": "PUT_OPEN",
+      "premium_collected": 57.0,
+      "realized_pnl": 57.0,
+      "orphaned": true
+    },
+    {
+      "symbol": "NIO",
+      "state": "PUT_OPEN",
+      "premium_collected": 15.0,
+      "realized_pnl": 15.0,
+      "orphaned": true
+    },
+    {
+      "symbol": "VALE",
+      "state": "PUT_OPEN",
+      "premium_collected": 21.0,
+      "realized_pnl": 21.0,
+      "orphaned": true
     }
   ]
 }
