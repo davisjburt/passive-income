@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "equity": 9984.81,
+  "equity": 9987.81,
   "exposure_pct": 88.1,
   "total_premium_collected": 200.0,
   "total_realized_pnl": 200.0,
@@ -29,8 +29,8 @@
       "strike": 13.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -17.0,
-      "unrealized_pl": -3.0
+      "market_value": -16.0,
+      "unrealized_pl": -2.0
     },
     {
       "underlying": "MARA",
@@ -38,8 +38,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -53.0,
-      "unrealized_pl": 4.0
+      "market_value": -51.0,
+      "unrealized_pl": 6.0
     },
     {
       "underlying": "NIO",
