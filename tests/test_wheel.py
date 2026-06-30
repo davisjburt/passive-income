@@ -127,3 +127,21 @@ def test_select_call_anchors_above_price_when_underwater():
     ]
     pick = select_call(cands, basis=100, current_price=120, rules=rules, today=TODAY)
     assert pick is not None and pick[0].strike == 128
+
+
+# ---- notifications ----
+
+def test_telegram_disabled_when_env_unset(monkeypatch):
+    from bot import notify
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    assert notify.telegram_enabled() is False
+    assert notify.send_telegram("hi") is False
+    assert notify.notify_trades(["BUY SPY ~$100"]) is False
+
+
+def test_notify_trades_empty_is_noop(monkeypatch):
+    from bot import notify
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "y")
+    assert notify.notify_trades([]) is False

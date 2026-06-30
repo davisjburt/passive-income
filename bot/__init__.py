@@ -1,1 +1,1 @@
-"""Conservative RSI(2) mean-reversion trading bot for Alpaca paper accounts."""
+"""Options wheel bot for Alpaca paper accounts."""

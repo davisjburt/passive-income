@@ -6,11 +6,11 @@
 // to dispatch the wheel workflow every 15 minutes during market hours.
 
 const REPO = "davisjburt/passive-income";
-const WORKFLOWS = ["wheel.yml", "trade.yml"];
+const WORKFLOW = "wheel.yml";
 
-async function dispatchOne(workflow, env) {
+async function dispatch(env) {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`,
+    `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
     {
       method: "POST",
       headers: {
@@ -26,10 +26,6 @@ async function dispatchOne(workflow, env) {
   if (!res.ok) {
     throw new Error(`dispatch ${res.status}: ${await res.text()}`);
   }
-}
-
-async function dispatch(env) {
-  await Promise.all(WORKFLOWS.map((wf) => dispatchOne(wf, env)));
 }
 
 export default {
