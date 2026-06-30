@@ -7,3 +7,7 @@ compatibility_date = "2026-06-01"
 # is closed and is idempotent against pending orders, so extra pokes are safe.
 [triggers]
 crons = ["*/5 13-21 * * 1-5"]
+
+[observability.logs]
+enabled = false
+invocation_logs = true
