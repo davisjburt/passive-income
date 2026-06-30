@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "equity": 9984.93,
+  "equity": 9979.91,
   "exposure_pct": 12.5,
-  "total_premium_collected": 21.0,
-  "total_realized_pnl": 21.0,
+  "total_premium_collected": 36.0,
+  "total_realized_pnl": 36.0,
   "option_positions": [
     {
       "underlying": "CLF",
@@ -13,19 +13,18 @@
       "qty": -1.0,
       "market_value": -36.0,
       "unrealized_pl": -15.0
-    }
-  ],
-  "pending_orders": [
+    },
     {
       "underlying": "NIO",
       "type": "put",
       "strike": 4.5,
       "expiration": "2026-08-07",
-      "limit": 0.14,
-      "status": "new",
-      "side": "sell"
+      "qty": -1.0,
+      "market_value": -20.0,
+      "unrealized_pl": -5.0
     }
   ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "F",
@@ -59,9 +58,9 @@
     },
     {
       "symbol": "NIO",
-      "state": "ORDER_PENDING",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "state": "PUT_OPEN",
+      "premium_collected": 15.0,
+      "realized_pnl": 15.0
     },
     {
       "symbol": "KGC",
