@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9950.93,
-  "exposure_pct": 8.0,
+  "equity": 9984.93,
+  "exposure_pct": 12.5,
   "total_premium_collected": 21.0,
   "total_realized_pnl": 21.0,
   "option_positions": [
@@ -11,11 +11,21 @@
       "strike": 8.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -70.0,
-      "unrealized_pl": -49.0
+      "market_value": -36.0,
+      "unrealized_pl": -15.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "NIO",
+      "type": "put",
+      "strike": 4.5,
+      "expiration": "2026-08-07",
+      "limit": 0.14,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "F",
@@ -49,7 +59,7 @@
     },
     {
       "symbol": "NIO",
-      "state": "CASH",
+      "state": "ORDER_PENDING",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
     },
