@@ -37,10 +37,10 @@ class WheelConfig:
     paper: bool = True  # hardcoded paper; going live is a deliberate code edit
 
     def validate(self) -> None:
-        if not 0 < self.per_stock_cap_pct <= 0.15:
-            raise ValueError("per_stock_cap_pct should be in (0, 0.15]")
-        if not 0 < self.portfolio_wheel_cap_pct <= 0.60:
-            raise ValueError("portfolio_wheel_cap_pct should be in (0, 0.60]")
+        if not 0 < self.per_stock_cap_pct <= 1.0:
+            raise ValueError("per_stock_cap_pct must be in (0, 1.0]")
+        if not 0 < self.portfolio_wheel_cap_pct <= 1.0:
+            raise ValueError("portfolio_wheel_cap_pct must be in (0, 1.0]")
         if not self.universe:
             raise ValueError("wheel universe is empty")
 

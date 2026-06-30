@@ -1,46 +1,45 @@
 # ------------------------------------------------------------------
-# Options WHEEL config — SMALL-ACCOUNT ($10k) profile.
-# Cash-secured puts + covered calls only. No naked options, no margin.
+# Options WHEEL config — MAXIMUM AGGRESSION (paper trading experiment).
 #
-# REALITY CHECK: one contract = 100 shares, so on a $10k account a single
-# cash-secured put is ~10% of equity no matter what. To fit, the universe must
-# be low-priced (~$5-13) and the per-stock cap is 10% (the floor, not 5-8%).
-# These are more volatile / less blue-chip than the large-cap version. This is
-# the unavoidable cost of running a CSP wheel on $10k.
-#
-# enabled:true but NOT in any workflow; wheel_run.py is dry-run unless --live.
+# Goals: deploy nearly all capital, maximize premium income, use high-IV
+# names with short DTE and near-ATM strikes. Assignment is fine — we
+# just spin the wheel faster. No risk guardrails: this is intentional.
 # ------------------------------------------------------------------
 
 enabled: true
 
-# Low-priced, liquid, optionable names so one contract fits a $10k account.
-# Approx prices (verify live): F ~$12, AAL ~$13, SOFI ~$11, VALE ~$11,
-# WBD ~$10, NIO ~$5, KGC ~$10, CLF ~$10.
+# High-IV, low-to-mid priced names with liquid options.
+# MARA/RIOT: crypto miners, IV often 100-200%+
+# AMC/SOFI/NIO: meme/growth, high IV
+# F/AAL/CLF/VALE: volatile industrials/airlines
+# SNDL: cannabis, IV regularly 150%+
 universe:
+  - MARA   # Marathon Digital (crypto miner)
+  - RIOT   # Riot Platforms (crypto miner)
+  - AMC    # AMC Entertainment
+  - SOFI   # SoFi Technologies
+  - NIO    # NIO
   - F      # Ford
   - AAL    # American Airlines
-  - SOFI   # SoFi
-  - VALE   # Vale
-  - WBD    # Warner Bros Discovery
-  - NIO    # NIO
-  - KGC    # Kinross Gold
+  - SNDL   # Sundial Growers
   - CLF    # Cleveland-Cliffs
+  - VALE   # Vale
 
-max_wheel_tickers: 4          # ~4 x ~$1,000 puts ≈ 40% deployed on $10k
-per_stock_cap_pct: 0.10       # one contract is ~10% of a $10k account (the floor)
-portfolio_wheel_cap_pct: 0.45 # 40-50% total wheel exposure
+max_wheel_tickers: 8           # spread across up to 8 names at once
+per_stock_cap_pct: 0.25        # up to 25% per position ($2,500 on $10k)
+portfolio_wheel_cap_pct: 0.95  # deploy 95% of the account
 
 put:
-  otm_pct: [0.10, 0.18]       # 10-18% below spot; deeper strikes also fit the $ cap
-  dte: [30, 45]
-  min_annual_yield: 0.08      # 8%+ annualized on reserved cash
+  otm_pct: [0.02, 0.08]        # 2-8% OTM — near ATM for maximum premium
+  dte: [7, 21]                 # short DTE for fast theta decay
+  min_annual_yield: 0.20       # 20%+ annualized (easily cleared with high-IV names)
 
 call:
-  otm_above_basis_pct: [0.05, 0.10]  # 5-10% above basis/price
-  dte: [30, 45]
-  min_annual_yield: 0.08
+  otm_above_basis_pct: [0.02, 0.05]  # tight — maximize call premium after assignment
+  dte: [7, 21]
+  min_annual_yield: 0.20
 
 safeguards:
-  halt_new_puts_drawdown_pct: 0.20   # underlying <= -20% vs entry/basis -> no new puts
-  order_type: limit                  # never market-order options (wide spreads)
-  limit_slippage_pct: 0.02
+  halt_new_puts_drawdown_pct: 1.0    # effectively disabled — no drawdown halt
+  order_type: limit                  # always limit orders on options (wide spreads)
+  limit_slippage_pct: 0.01           # 1% below bid (tighter, fills faster)
