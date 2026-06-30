@@ -169,6 +169,17 @@
       .badge.call { background: color-mix(in srgb, var(--neg) 12%, transparent); color: var(--neg); }
       .badge.stock { background: color-mix(in srgb, #888 12%, transparent); color: var(--text); }
       .badge.pending { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #d97706; }
+      tr.divider td {
+        padding: 6px 0 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+      }
+      tr.orphaned td { opacity: 0.65; }
 
       #wheel-table, #pending-table, #positions-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -249,20 +260,28 @@
         const pnl = d.total_realized_pnl || 0;
         $("kpi-pnl").innerHTML = `<span class="${cls(pnl)}">${signed(pnl)}</span>`;
 
-        // Per-symbol table
+        // Per-symbol table — split into active universe and orphaned (old config)
         const syms = d.symbols || [];
         if (syms.length) {
-          const rows = syms.map((s) => {
+          const active   = syms.filter((s) => !s.orphaned);
+          const orphaned = syms.filter((s) => s.orphaned);
+          const renderRow = (s, extraClass = "") => {
             const badge = STATE_BADGE[s.state] || `<span class="badge">${s.state}</span>`;
-            const prem = s.premium_collected ? money(s.premium_collected) : "—";
-            const rpnl = s.realized_pnl ? `<span class="${cls(s.realized_pnl)}">${signed(s.realized_pnl)}</span>` : "—";
-            return `<tr>
+            const prem  = s.premium_collected ? money(s.premium_collected) : "—";
+            const rpnl  = s.realized_pnl
+              ? `<span class="${cls(s.realized_pnl)}">${signed(s.realized_pnl)}</span>` : "—";
+            return `<tr class="${extraClass}">
               <td class="sym">${s.symbol}</td>
               <td>${badge}</td>
               <td class="mono">${prem}</td>
               <td class="mono">${rpnl}</td>
             </tr>`;
-          }).join("");
+          };
+          let rows = active.map((s) => renderRow(s)).join("");
+          if (orphaned.length) {
+            rows += `<tr class="divider"><td colspan="4">Monitoring only · outside current universe</td></tr>`;
+            rows += orphaned.map((s) => renderRow(s, "orphaned")).join("");
+          }
           $("wheel-table").innerHTML = `<table>
             <thead><tr>
               <th>Symbol</th><th>State</th><th>Premium</th><th>Realized P/L</th>

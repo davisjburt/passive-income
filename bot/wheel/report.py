@@ -83,20 +83,21 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
         })
 
     pend_map = pending_option_underlyings(t)
+    universe_set = set(cfg.universe)
+    orphaned = sorted(pv.wheel_names() - universe_set)
+
     symbols = []
-    for sym in cfg.universe:
+    for sym in list(cfg.universe) + orphaned:
         opt_type = pv.options.get(sym, {}).get("type")
         share_qty = pv.shares.get(sym, {}).get("qty", 0.0)
         state = reconstruct_state(opt_type, share_qty)
-        if sym in pend_map:
-            state_label = "ORDER_PENDING"
-        else:
-            state_label = state.value
+        state_label = "ORDER_PENDING" if sym in pend_map else state.value
         p = pnl.get(sym, {})
         symbols.append({
             "symbol": sym, "state": state_label,
             "premium_collected": p.get("gross_premium", 0.0),
             "realized_pnl": p.get("realized", 0.0),
+            "orphaned": sym not in universe_set,
         })
 
     exposure = pv.exposure() + sum(o["strike"] * 100 for o in pending if o["type"] == "put")
