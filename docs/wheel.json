@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "equity": 9993.81,
+  "equity": 9992.81,
   "exposure_pct": 88.1,
-  "total_premium_collected": 200.0,
-  "total_realized_pnl": 200.0,
+  "total_premium_collected": 44.0,
+  "total_realized_pnl": 44.0,
   "option_positions": [
     {
       "underlying": "AAL",
@@ -11,8 +11,8 @@
       "strike": 17.5,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -39.0,
-      "unrealized_pl": 3.0
+      "market_value": -41.0,
+      "unrealized_pl": 1.0
     },
     {
       "underlying": "CLF",
@@ -38,8 +38,8 @@
       "strike": 13.0,
       "expiration": "2026-07-10",
       "qty": -1.0,
-      "market_value": -53.0,
-      "unrealized_pl": 4.0
+      "market_value": -52.0,
+      "unrealized_pl": 5.0
     },
     {
       "underlying": "NIO",
@@ -72,19 +72,25 @@
   "pending_orders": [],
   "symbols": [
     {
-      "symbol": "MARA",
-      "state": "PUT_OPEN",
-      "premium_collected": 57.0,
-      "realized_pnl": 57.0
-    },
-    {
-      "symbol": "RIOT",
+      "symbol": "T",
       "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
     },
     {
-      "symbol": "AMC",
+      "symbol": "PFE",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0
+    },
+    {
+      "symbol": "F",
+      "state": "PUT_OPEN",
+      "premium_collected": 14.0,
+      "realized_pnl": 14.0
+    },
+    {
+      "symbol": "KEY",
       "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0
@@ -94,42 +100,6 @@
       "state": "PUT_OPEN",
       "premium_collected": 30.0,
       "realized_pnl": 30.0
-    },
-    {
-      "symbol": "NIO",
-      "state": "PUT_OPEN",
-      "premium_collected": 15.0,
-      "realized_pnl": 15.0
-    },
-    {
-      "symbol": "F",
-      "state": "PUT_OPEN",
-      "premium_collected": 14.0,
-      "realized_pnl": 14.0
-    },
-    {
-      "symbol": "AAL",
-      "state": "PUT_OPEN",
-      "premium_collected": 42.0,
-      "realized_pnl": 42.0
-    },
-    {
-      "symbol": "SNDL",
-      "state": "CASH",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
-    },
-    {
-      "symbol": "CLF",
-      "state": "PUT_OPEN",
-      "premium_collected": 21.0,
-      "realized_pnl": 21.0
-    },
-    {
-      "symbol": "VALE",
-      "state": "PUT_OPEN",
-      "premium_collected": 21.0,
-      "realized_pnl": 21.0
     }
   ]
 }
