@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "equity": 9980.85,
+  "equity": 9979.83,
   "exposure_pct": 88.2,
-  "total_premium_collected": 165.0,
-  "total_realized_pnl": 165.0,
+  "total_premium_collected": 179.0,
+  "total_realized_pnl": 179.0,
   "option_positions": [
     {
       "underlying": "AAL",
@@ -22,6 +22,15 @@
       "qty": -1.0,
       "market_value": -35.0,
       "unrealized_pl": -14.0
+    },
+    {
+      "underlying": "F",
+      "type": "put",
+      "strike": 13.5,
+      "expiration": "2026-07-10",
+      "qty": -1.0,
+      "market_value": -15.0,
+      "unrealized_pl": -1.0
     },
     {
       "underlying": "MARA",
@@ -60,15 +69,6 @@
       "limit": 0.21,
       "status": "new",
       "side": "sell"
-    },
-    {
-      "underlying": "F",
-      "type": "put",
-      "strike": 13.5,
-      "expiration": "2026-07-10",
-      "limit": 0.14,
-      "status": "new",
-      "side": "sell"
     }
   ],
   "symbols": [
@@ -104,9 +104,9 @@
     },
     {
       "symbol": "F",
-      "state": "ORDER_PENDING",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0
+      "state": "PUT_OPEN",
+      "premium_collected": 14.0,
+      "realized_pnl": 14.0
     },
     {
       "symbol": "AAL",
