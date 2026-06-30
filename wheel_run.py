@@ -63,7 +63,12 @@ def main() -> int:
     actions = summary.get("actions", [])
     if not dry and actions:
         from bot.notify import send_telegram
-        send_telegram("🛞 *Wheel* — orders placed:\n" + "\n".join(f"• {a}" for a in actions))
+        equity = summary.get("equity", 0)
+        exposure = summary.get("exposure_pct", 0)
+        header = f"🛞 *Wheel — {len(actions)} order{'s' if len(actions) != 1 else ''} placed*"
+        body   = "\n".join(f"• {a}" for a in actions)
+        footer = f"Equity: ${equity:,.2f} · Deployed: {exposure}%"
+        send_telegram(f"{header}\n{body}\n\n{footer}")
     return 0
 
 

@@ -59,12 +59,16 @@ class SymbolLedger:
     cost_basis: float = 0.0   # set on assignment = strike - put premium/share
     entry_price: float = 0.0  # underlying price when the wheel started (for drawdown)
     rolls: int = 0             # number of times this position has been rolled (capped at MAX_ROLLS)
+    last_state: str = ""       # previous WheelState value — used to detect transitions
+    drawdown_halt_alerted: bool = False  # prevents repeated drawdown-halt notifications
 
 
 class Ledger:
     def __init__(self, data: dict | None = None):
+        raw = data or {}
+        self.meta: dict = raw.get("_meta", {})  # cross-run state: notification dates
         self.data: dict[str, SymbolLedger] = {
-            k: SymbolLedger(**v) for k, v in (data or {}).items()
+            k: SymbolLedger(**v) for k, v in raw.items() if k != "_meta"
         }
 
     @classmethod
@@ -78,8 +82,10 @@ class Ledger:
 
     def save(self) -> None:
         LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
-        LEDGER_PATH.write_text(json.dumps(
-            {k: vars(v) for k, v in self.data.items()}, indent=2))
+        out: dict = {k: vars(v) for k, v in self.data.items()}
+        if self.meta:
+            out["_meta"] = self.meta
+        LEDGER_PATH.write_text(json.dumps(out, indent=2))
 
     def get(self, sym: str) -> SymbolLedger:
         return self.data.setdefault(sym, SymbolLedger())
@@ -203,12 +209,29 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         return summary
 
     clock = trading.get_clock()
-    if not clock.is_open and not dry_run:
-        log.info("Market closed. Skipping.")
-        return summary
-
     acct = trading.get_account()
     equity = float(acct.equity)
+    summary["market_open"] = clock.is_open
+
+    if not clock.is_open and not dry_run:
+        log.info("Market closed. Skipping.")
+        # EOD summary: fire once on the first closed-market run of each day.
+        today_str = datetime.now(timezone.utc).date().isoformat()
+        if ledger.meta.get("eod_date") != today_str:
+            pv_eod = build_positions_view(trading)
+            total_prem = sum(
+                getattr(ledger.get(s), "premium_collected", 0.0)
+                for s in ledger.data
+            )
+            total_pnl = sum(
+                getattr(ledger.get(s), "realized_pnl", 0.0)
+                for s in ledger.data
+            )
+            _send_eod_summary(pv_eod, equity, total_prem, total_pnl)
+            ledger.meta["eod_date"] = today_str
+            ledger.save()
+        return summary
+
     pv = build_positions_view(trading)
     pending = pending_option_underlyings(trading)
     # Count pending sell-to-open puts toward exposure + active names so caps and
@@ -219,6 +242,13 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
 
     log.info("equity=$%.0f exposure=$%.0f (%.0f%%) names=%d",
              equity, exposure, exposure / equity * 100 if equity else 0, active)
+
+    # Morning briefing: once per trading day, on the first market-open run.
+    if not dry_run:
+        today_str = today.isoformat()
+        if ledger.meta.get("morning_date") != today_str:
+            _send_morning_briefing(pv, equity, exposure, cfg)
+            ledger.meta["morning_date"] = today_str
 
     # Extend the loop to cover positions that exist in the broker but have been
     # removed from the configured universe (e.g. switching from aggressive to
@@ -238,6 +268,11 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         share_qty = pv.shares.get(sym, {}).get("qty", 0.0)
         state = reconstruct_state(opt_type, share_qty)
 
+        # Detect and notify state transitions (e.g. assignment, expiry, called away).
+        old_state = ledger.get(sym).last_state
+        if not dry_run and old_state and old_state != state.value:
+            _notify_transition(sym, old_state, state.value, ledger.get(sym))
+
         if state == WheelState.CASH:
             if not in_universe:
                 continue  # orphaned symbol returned to cash — don't open new positions
@@ -247,7 +282,15 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             if not spot:
                 summary["skipped"].append(f"{sym}: no quote"); continue
             if ledger.drawdown(sym, spot) >= cfg.safeguards.halt_new_puts_drawdown_pct:
+                if not dry_run and not ledger.get(sym).drawdown_halt_alerted:
+                    dd_pct = ledger.drawdown(sym, spot) * 100
+                    _alert(
+                        f"⚠️ *{sym} — drawdown halt triggered*\n"
+                        f"Down {dd_pct:.1f}% from entry — pausing new puts until it recovers"
+                    )
+                    ledger.get(sym).drawdown_halt_alerted = True
                 summary["skipped"].append(f"{sym}: drawdown halt"); continue
+            ledger.get(sym).drawdown_halt_alerted = False  # reset when no longer halted
             lo, hi = put_strike_band(spot, cfg.put.band)
             cands = fetch_contracts(opt, sym, "put", lo, hi, cfg.put.dte, today)
             pick = select_put(cands, spot, cfg.put, today, equity,
@@ -332,6 +375,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                 summary["skipped"].append(f"{sym}: no quote for roll check")
 
         led = ledger.get(sym)
+        led.last_state = state.value  # persist for transition detection next cycle
         summary["metrics"][sym] = {
             "state": state.value,
             "premium_collected": round(led.premium_collected, 2),
@@ -353,6 +397,74 @@ def _alert(text: str) -> None:
         send_telegram(text)
     except Exception as exc:  # noqa: BLE001
         log.warning("alert send failed: %s", exc)
+
+
+def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger) -> None:
+    """Send a Telegram alert when a symbol's wheel state changes meaningfully."""
+    if old == "PUT_OPEN" and new == "LONG_STOCK":
+        basis = f"${led.cost_basis:.2f}" if led.cost_basis else "at strike"
+        _alert(
+            f"📦 *{sym} — assigned*\n"
+            f"Now holding 100 shares · cost basis {basis}\n"
+            f"Premium banked so far: +${led.premium_collected:.2f}\n"
+            f"Will sell a covered call next cycle"
+        )
+    elif old == "PUT_OPEN" and new == "CASH":
+        _alert(
+            f"✅ *{sym} — put expired worthless*\n"
+            f"Full premium kept: +${led.premium_collected:.2f}\n"
+            f"Back to CASH · will sell a new put"
+        )
+    elif old == "CALL_OPEN" and new == "CASH":
+        _alert(
+            f"🎯 *{sym} — called away · wheel cycle complete!*\n"
+            f"Realized P&L: ${led.realized_pnl:+.2f}"
+        )
+    elif old == "CALL_OPEN" and new == "LONG_STOCK":
+        _alert(
+            f"📋 *{sym} — covered call expired*\n"
+            f"Still holding 100 shares · will sell a new call"
+        )
+
+
+def _send_morning_briefing(pv: "PositionsView", equity: float,
+                           exposure: float, cfg: "WheelConfig") -> None:
+    open_puts  = [f"• {sym} PUT ${info['strike']:.2f} exp {info['exp']}"
+                  for sym, info in pv.options.items() if info["type"] == "put"]
+    open_calls = [f"• {sym} CALL ${info['strike']:.2f} exp {info['exp']}"
+                  for sym, info in pv.options.items() if info["type"] == "call"]
+    shares_    = [f"• {sym} ×{int(info['qty'])} @ ${info['price']:.2f}"
+                  for sym, info in pv.shares.items()]
+    watching   = [s for s in cfg.universe if s not in pv.wheel_names()]
+
+    lines = [f"🌅 *Wheel — market open*",
+             f"Equity: ${equity:,.2f}  ·  Deployed: {exposure/equity*100:.1f}%"]
+    if open_puts:
+        lines += ["", "*Short puts:*"] + open_puts
+    if open_calls:
+        lines += ["", "*Covered calls:*"] + open_calls
+    if shares_:
+        lines += ["", "*Shares held:*"] + shares_
+    if watching:
+        lines += ["", f"Watching for new puts: {', '.join(watching)}"]
+    _alert("\n".join(lines))
+
+
+def _send_eod_summary(pv: "PositionsView", equity: float,
+                      total_premium: float, total_pnl: float) -> None:
+    open_count = len(pv.options) + len(pv.shares)
+    lines = [
+        f"🔔 *Wheel — market closed*",
+        f"Equity: ${equity:,.2f}",
+        f"Premium collected (all time): +${total_premium:.2f}",
+        f"Net realized P&L: ${total_pnl:+.2f}",
+        f"Open positions: {open_count}",
+    ]
+    if pv.options:
+        lines.append("")
+        for sym, info in pv.options.items():
+            lines.append(f"• {sym} {info['type'].upper()} ${info['strike']:.2f} exp {info['exp']}")
+    _alert("\n".join(lines))
 
 
 def _wait_for_fill(trading: TradingClient, order_id: str,
