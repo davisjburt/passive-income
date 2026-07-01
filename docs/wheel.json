@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9911.18,
-  "exposure_pct": 46.4,
+  "equity": 9983.18,
+  "exposure_pct": 46.1,
   "total_premium_collected": 115.0,
   "total_realized_pnl": 69.0,
   "option_positions": [
@@ -11,8 +11,8 @@
       "strike": 16.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -56.0,
-      "unrealized_pl": 0.0
+      "market_value": -54.0,
+      "unrealized_pl": 2.0
     },
     {
       "underlying": "T",
@@ -20,8 +20,8 @@
       "strike": 18.0,
       "expiration": "2026-08-07",
       "qty": -1.0,
-      "market_value": -94.0,
-      "unrealized_pl": -79.0
+      "market_value": -24.0,
+      "unrealized_pl": -9.0
     }
   ],
   "pending_orders": [
