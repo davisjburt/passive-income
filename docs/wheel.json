@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "equity": 9984.18,
-  "exposure_pct": 34.1,
+  "exposure_pct": 46.1,
   "total_premium_collected": 115.0,
   "total_realized_pnl": 69.0,
   "option_positions": [
@@ -24,7 +24,17 @@
       "unrealized_pl": -5.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "F",
+      "type": "put",
+      "strike": 12.0,
+      "expiration": "2026-07-31",
+      "limit": 0.13,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "T",
@@ -42,7 +52,7 @@
     },
     {
       "symbol": "F",
-      "state": "CASH",
+      "state": "ORDER_PENDING",
       "premium_collected": 14.0,
       "realized_pnl": -2.0,
       "orphaned": false

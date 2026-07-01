@@ -23,7 +23,7 @@
     "cost_basis": 0.0,
     "entry_price": 13.895,
     "rolls": 0,
-    "last_state": "",
+    "last_state": "CASH",
     "drawdown_halt_alerted": false
   },
   "KEY": {
@@ -45,7 +45,7 @@
     "drawdown_halt_alerted": false
   },
   "_meta": {
-    "morning_date": "2026-06-30",
+    "morning_date": "2026-07-01",
     "eod_date": "2026-07-01"
   }
 }
