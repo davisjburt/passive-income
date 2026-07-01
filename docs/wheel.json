@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "equity": 9983.18,
+  "equity": 9987.18,
   "exposure_pct": 46.1,
   "total_premium_collected": 115.0,
   "total_realized_pnl": 69.0,
@@ -11,8 +11,8 @@
       "strike": 16.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -54.0,
-      "unrealized_pl": 2.0
+      "market_value": -50.0,
+      "unrealized_pl": 6.0
     },
     {
       "underlying": "T",
