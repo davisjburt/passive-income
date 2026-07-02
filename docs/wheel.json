@@ -11,8 +11,8 @@
       "strike": 12.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -17.0,
-      "unrealized_pl": -4.0
+      "market_value": -18.0,
+      "unrealized_pl": -5.0
     },
     {
       "underlying": "SOFI",
@@ -20,8 +20,8 @@
       "strike": 16.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -54.0,
-      "unrealized_pl": 2.0
+      "market_value": -55.0,
+      "unrealized_pl": 1.0
     },
     {
       "underlying": "T",
@@ -29,8 +29,8 @@
       "strike": 18.0,
       "expiration": "2026-08-07",
       "qty": -1.0,
-      "market_value": -28.0,
-      "unrealized_pl": -13.0
+      "market_value": -26.0,
+      "unrealized_pl": -11.0
     }
   ],
   "pending_orders": [],
