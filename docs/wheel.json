@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9947.11,
-  "exposure_pct": 46.2,
+  "equity": 9940.11,
+  "exposure_pct": 46.3,
   "total_premium_collected": 128.0,
   "total_realized_pnl": 82.0,
   "option_positions": [
@@ -20,8 +20,8 @@
       "strike": 16.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -39.0,
-      "unrealized_pl": 17.0
+      "market_value": -46.0,
+      "unrealized_pl": 10.0
     },
     {
       "underlying": "T",
