@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "equity": 9951.11,
+  "equity": 9950.11,
   "exposure_pct": 46.2,
   "total_premium_collected": 128.0,
   "total_realized_pnl": 82.0,
@@ -11,8 +11,8 @@
       "strike": 12.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -19.0,
-      "unrealized_pl": -6.0
+      "market_value": -20.0,
+      "unrealized_pl": -7.0
     },
     {
       "underlying": "SOFI",
