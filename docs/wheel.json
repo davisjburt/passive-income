@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "equity": 9937.11,
-  "exposure_pct": 46.3,
+  "equity": 9989.11,
+  "exposure_pct": 46.1,
   "total_premium_collected": 128.0,
   "total_realized_pnl": 82.0,
   "option_positions": [
@@ -11,8 +11,8 @@
       "strike": 12.0,
       "expiration": "2026-07-31",
       "qty": -1.0,
-      "market_value": -13.0,
-      "unrealized_pl": 0.0
+      "market_value": -15.0,
+      "unrealized_pl": -2.0
     },
     {
       "underlying": "SOFI",
@@ -29,8 +29,8 @@
       "strike": 18.0,
       "expiration": "2026-08-07",
       "qty": -1.0,
-      "market_value": -74.0,
-      "unrealized_pl": -59.0
+      "market_value": -20.0,
+      "unrealized_pl": -5.0
     }
   ],
   "pending_orders": [],
