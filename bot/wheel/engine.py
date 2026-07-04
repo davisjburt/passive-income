@@ -391,10 +391,14 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
 
 
 def _alert(text: str) -> None:
-    """Fire-and-forget Telegram notification. Never raises."""
+    """Fire-and-forget Telegram notification. Never raises. send_telegram already
+    retries transient failures internally; if it still returns False, log it
+    clearly so a dropped alert shows up in the run's logs instead of vanishing.
+    """
     try:
         from bot.notify import send_telegram  # lazy import — keep engine testable without Telegram env
-        send_telegram(text)
+        if not send_telegram(text):
+            log.error("Telegram alert dropped after retries: %.80s...", text)
     except Exception as exc:  # noqa: BLE001
         log.warning("alert send failed: %s", exc)
 
