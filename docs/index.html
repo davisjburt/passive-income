@@ -181,6 +181,9 @@
       }
       tr.orphaned td { opacity: 0.65; }
 
+      .spark-cell { padding-left: 16px; }
+      .spark-cell svg { display: block; margin-left: auto; }
+
       #wheel-table, #pending-table, #positions-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
       .updated { font-size: 12px; color: var(--muted); margin-top: 28px; text-align: center; }
@@ -219,6 +222,11 @@
       </div>
 
       <div class="card">
+        <h2>Live prices</h2>
+        <div id="prices-table"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div class="card">
         <h2>Wheel — per symbol</h2>
         <div id="wheel-table"><div class="empty">Loading…</div></div>
       </div>
@@ -254,6 +262,25 @@
         "ORDER_PENDING": '<span class="badge pending">PENDING</span>',
       };
 
+      let wheelSymbols = []; // populated from wheel.json, used to fetch /api/prices
+
+      function sparkline(values) {
+        if (!values || values.length < 2) return '<span style="color:var(--muted)">—</span>';
+        const w = 72, h = 24, pad = 2;
+        const lo = Math.min(...values), hi = Math.max(...values);
+        const span = hi - lo || 1;
+        const step = (w - pad * 2) / (values.length - 1);
+        const pts = values.map((v, i) =>
+          `${(pad + i * step).toFixed(1)},${(h - pad - ((v - lo) / span) * (h - pad * 2)).toFixed(1)}`
+        ).join(" ");
+        const up = values[values.length - 1] >= values[0];
+        const color = up ? "var(--pos)" : "var(--neg)";
+        return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+          <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"
+            stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>`;
+      }
+
       function renderWheel(d) {
         $("kpi-exposure").textContent = d.exposure_pct + "%";
         $("kpi-premium").textContent = money(d.total_premium_collected);
@@ -262,6 +289,7 @@
 
         // Per-symbol table — split into active universe and orphaned (old config)
         const syms = d.symbols || [];
+        wheelSymbols = syms.map((s) => s.symbol);
         if (syms.length) {
           const active   = syms.filter((s) => !s.orphaned);
           const orphaned = syms.filter((s) => s.orphaned);
@@ -362,13 +390,50 @@
         } catch (e) { /* live overlay optional */ }
       }
 
+      async function loadPrices() {
+        if (!wheelSymbols.length) return;
+        try {
+          const res = await fetch(
+            "api/prices?symbols=" + wheelSymbols.join(",") + "&cb=" + Date.now(),
+            { cache: "no-store" }
+          );
+          if (!res.ok) return;
+          const d = await res.json();
+          const prices = d.prices || {};
+          const rows = wheelSymbols
+            .filter((sym) => prices[sym])
+            .map((sym) => {
+              const p = prices[sym];
+              const chg = p.change_pct || 0;
+              return `<tr>
+                <td class="sym">${sym}</td>
+                <td class="mono">${money(p.price)}</td>
+                <td class="mono ${cls(chg)}">${pct(chg)}</td>
+                <td class="mono spark-cell">${sparkline(p.trend)}</td>
+              </tr>`;
+            }).join("");
+          if (rows) {
+            $("prices-table").innerHTML = `<table>
+              <thead><tr><th>Symbol</th><th>Price</th><th>Today</th><th>Trend</th></tr></thead>
+              <tbody>${rows}</tbody></table>`;
+          } else {
+            $("prices-table").innerHTML = `<div class="empty">No price data yet.</div>`;
+          }
+        } catch (e) { /* leave previous render on transient failure */ }
+      }
+
       async function refresh() {
         await loadWheel();
         await loadLive();
       }
 
-      refresh();
+      async function boot() {
+        await refresh();     // populates wheelSymbols before the first price fetch
+        await loadPrices();
+      }
+      boot();
       setInterval(refresh, 30000);
+      setInterval(loadPrices, 60000);
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () =>
