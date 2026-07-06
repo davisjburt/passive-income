@@ -282,7 +282,6 @@
       }
 
       function renderWheel(d) {
-        $("kpi-exposure").textContent = d.exposure_pct + "%";
         $("kpi-premium").textContent = money(d.total_premium_collected);
         const pnl = d.total_realized_pnl || 0;
         $("kpi-pnl").innerHTML = `<span class="${cls(pnl)}">${signed(pnl)}</span>`;
@@ -338,9 +337,14 @@
           $("pending-card").style.display = "none";
         }
 
-        // Open option positions
-        const opts = d.option_positions || [];
-        if (opts.length) {
+      }
+
+      // Open option positions — sourced from /api/live (fetched fresh from Alpaca
+      // on every request, not committed to git) since market_value/unrealized_pl
+      // move continuously and would otherwise force a commit + Pages rebuild
+      // on nearly every 5-min bot cycle.
+      function renderLivePositions(opts) {
+        if (opts && opts.length) {
           const rows = opts.map((p) => `<tr>
             <td class="sym">${p.underlying}</td>
             <td class="${p.type === "put" ? "pos" : "neg"}">${p.type.toUpperCase()}</td>
@@ -364,10 +368,6 @@
           if (!res.ok) return;
           const d = await res.json();
           renderWheel(d);
-          // Use wheel.json equity as fallback baseline
-          if (d.equity && $("equity").textContent === "—") {
-            $("equity").textContent = money(d.equity);
-          }
           $("updated").textContent = "Updated just now";
         } catch (e) { /* leave loading state */ }
       }
@@ -383,6 +383,8 @@
           const dc = $("dayChange");
           dc.textContent = `${signed(a.day_pl)} (${pct(a.day_pl_pct)}) today`;
           dc.className = "sub " + cls(a.day_pl);
+          $("kpi-exposure").textContent = a.exposure_pct.toFixed(1) + "%";
+          renderLivePositions(d.option_positions);
           const open = d.market_open;
           $("dot").className = "dot " + (open ? "open" : "");
           $("market").textContent = open ? "Market open" : "Market closed";

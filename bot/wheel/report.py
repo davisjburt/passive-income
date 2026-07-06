@@ -49,11 +49,15 @@ def _option_fills(t: TradingClient) -> list[dict]:
 
 def build_wheel_report(cfg: WheelConfig) -> dict:
     t = TradingClient(cfg.api_key, cfg.api_secret, paper=cfg.paper)
-    acct = t.get_account()
-    equity = _f(acct.equity)
     led = Ledger.load()
     pnl = aggregate_premium(_option_fills(t))  # per-underlying premium from fills
 
+    # NOTE: this file deliberately excludes anything that mark-to-market moves
+    # continuously (equity, market_value, unrealized_pl) — those tick on every
+    # single 5-min cycle, which would make this file (and thus a Pages rebuild)
+    # commit near-constantly. Live numbers are served dynamically instead by
+    # functions/api/live.js, which hits Alpaca directly with no git involved.
+    # This file only changes on real events: fills, assignment, expiry, rolls.
     option_positions, pv = [], build_positions_view(t)
     for p in t.get_all_positions():
         ac = getattr(p.asset_class, "value", str(p.asset_class))
@@ -66,7 +70,6 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
         option_positions.append({
             "underlying": under, "type": typ, "strike": strike,
             "expiration": exp.isoformat(), "qty": _f(p.qty),
-            "market_value": _f(p.market_value), "unrealized_pl": _f(p.unrealized_pl),
         })
 
     pending = []
@@ -100,15 +103,10 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
             "orphaned": sym not in universe_set,
         })
 
-    exposure = pv.exposure() + sum(o["strike"] * 100 for o in pending if o["type"] == "put")
-    # NOTE: intentionally no high-resolution timestamp here. Running every 5 min,
-    # a changing timestamp would make every run commit wheel.json and trigger a
-    # Cloudflare Pages rebuild (500/mo free limit). Without it, the file only
-    # changes — and only rebuilds — when the actual wheel data changes.
+    # No high-resolution timestamp either, for the same reason — a changing
+    # timestamp would defeat the point of excluding the live numbers above.
     return {
         "enabled": cfg.enabled,
-        "equity": round(equity, 2),
-        "exposure_pct": round(exposure / equity * 100, 1) if equity else 0,
         "total_premium_collected": round(sum(s["premium_collected"] for s in symbols), 2),
         "total_realized_pnl": round(sum(s["realized_pnl"] for s in symbols), 2),
         "option_positions": option_positions,

@@ -4,10 +4,24 @@
 // this on top of the committed docs/data.json snapshot.
 
 const BASE = "https://paper-api.alpaca.markets/v2";
+// OCC option symbol, e.g. "F260710P00013500" -> AAPL, 2026-07-10, put, 13.50
+const OCC = /^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/;
 
 function num(x) {
   const n = parseFloat(x);
   return Number.isFinite(n) ? n : 0;
+}
+
+function parseOcc(symbol) {
+  const m = OCC.exec(symbol);
+  if (!m) return null;
+  const [, root, yy, mm, dd, cp, strike] = m;
+  return {
+    underlying: root,
+    expiration: `20${yy}-${mm}-${dd}`,
+    type: cp === "C" ? "call" : "put",
+    strike: parseInt(strike, 10) / 1000,
+  };
 }
 
 function json(obj, status = 200) {
@@ -31,10 +45,11 @@ export async function onRequestGet(context) {
   const headers = { "APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret };
 
   try {
-    const [acctR, posR, clockR] = await Promise.all([
+    const [acctR, posR, clockR, ordR] = await Promise.all([
       fetch(`${BASE}/account`, { headers }),
       fetch(`${BASE}/positions`, { headers }),
       fetch(`${BASE}/clock`, { headers }),
+      fetch(`${BASE}/orders?status=open`, { headers }),
     ]);
 
     if (!acctR.ok) {
@@ -44,9 +59,53 @@ export async function onRequestGet(context) {
     const a = await acctR.json();
     const positionsRaw = posR.ok ? await posR.json() : [];
     const clock = clockR.ok ? await clockR.json() : { is_open: false };
+    const ordersRaw = ordR.ok ? await ordR.json() : [];
 
     const equity = num(a.equity);
     const lastEquity = num(a.last_equity);
+
+    const stockPositions = [];
+    const optionPositions = [];
+    for (const p of positionsRaw || []) {
+      const ac = p.asset_class;
+      if (ac === "us_option") {
+        const occ = parseOcc(p.symbol);
+        if (!occ) continue;
+        optionPositions.push({
+          underlying: occ.underlying,
+          type: occ.type,
+          strike: occ.strike,
+          expiration: occ.expiration,
+          qty: num(p.qty),
+          market_value: num(p.market_value),
+          unrealized_pl: num(p.unrealized_pl),
+        });
+      } else {
+        stockPositions.push({
+          symbol: p.symbol,
+          qty: num(p.qty),
+          avg_entry: num(p.avg_entry_price),
+          current_price: num(p.current_price),
+          market_value: num(p.market_value),
+          unrealized_pl: num(p.unrealized_pl),
+          unrealized_plpc: num(p.unrealized_plpc) * 100,
+        });
+      }
+    }
+
+    // Exposure = stock notional + cash reserved against open short puts
+    // (filled positions and resting sell-to-open orders both count, matching
+    // the Python bot's PositionsView.exposure() + pending-put logic).
+    let exposure = stockPositions.reduce((sum, p) => sum + p.qty * p.current_price, 0);
+    exposure += optionPositions
+      .filter((o) => o.type === "put")
+      .reduce((sum, o) => sum + o.strike * 100, 0);
+    for (const o of ordersRaw || []) {
+      const occ = parseOcc(o.symbol);
+      if (occ && occ.type === "put" && o.side === "sell") {
+        exposure += occ.strike * 100;
+      }
+    }
 
     return json({
       generated_at: new Date().toISOString(),
@@ -60,16 +119,10 @@ export async function onRequestGet(context) {
         portfolio_value: num(a.portfolio_value),
         day_pl: equity - lastEquity,
         day_pl_pct: lastEquity ? ((equity - lastEquity) / lastEquity) * 100 : 0,
+        exposure_pct: equity ? (exposure / equity) * 100 : 0,
       },
-      positions: (positionsRaw || []).map((p) => ({
-        symbol: p.symbol,
-        qty: num(p.qty),
-        avg_entry: num(p.avg_entry_price),
-        current_price: num(p.current_price),
-        market_value: num(p.market_value),
-        unrealized_pl: num(p.unrealized_pl),
-        unrealized_plpc: num(p.unrealized_plpc) * 100,
-      })),
+      positions: stockPositions,
+      option_positions: optionPositions,
     });
   } catch (e) {
     return json({ error: String(e) }, 502);
