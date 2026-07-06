@@ -106,6 +106,21 @@ def portfolio_ok(current_exposure: float, added: float, equity: float, cap_pct: 
     return current_exposure + added <= equity * cap_pct + 1e-9
 
 
+def max_contracts(equity: float, strike: float, per_stock_cap_pct: float,
+                  exposure: float, portfolio_cap_pct: float) -> int:
+    """How many whole put contracts fit under both caps, given capital already
+    reserved this cycle (exposure). E.g. equity=$10k, strike=$18, per_stock_cap=25%
+    -> up to floor($2,500 / $1,800) = 1 contract from the per-stock side alone.
+    """
+    if equity <= 0 or strike <= 0:
+        return 0
+    reserve_per_contract = strike * 100
+    by_stock = int((equity * per_stock_cap_pct) // reserve_per_contract)
+    room = equity * portfolio_cap_pct - exposure
+    by_portfolio = int(room // reserve_per_contract) if room > 0 else 0
+    return max(0, min(by_stock, by_portfolio))
+
+
 # ---------- selection ----------
 
 @dataclass

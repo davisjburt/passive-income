@@ -9,6 +9,7 @@ from bot.wheel.strategy import (
     aggregate_premium,
     annualized_yield,
     call_strike_band,
+    max_contracts,
     parse_occ,
     per_stock_ok,
     portfolio_ok,
@@ -71,6 +72,25 @@ def test_caps():
     assert per_stock_ok(9000, 100_000, 0.08) is False
     assert portfolio_ok(40_000, 5_000, 100_000, 0.45) is True
     assert portfolio_ok(43_000, 5_000, 100_000, 0.45) is False
+
+
+def test_max_contracts_limited_by_per_stock_cap():
+    # equity $10k, strike $18 -> $1,800/contract. 25% per-stock cap = $2,500 -> 1 fits.
+    assert max_contracts(10_000, 18.0, 0.25, exposure=0, portfolio_cap_pct=0.70) == 1
+    # cheaper strike ($12) -> $1,200/contract, $2,500 cap -> 2 fit.
+    assert max_contracts(10_000, 12.0, 0.25, exposure=0, portfolio_cap_pct=0.70) == 2
+
+
+def test_max_contracts_limited_by_portfolio_cap():
+    # per-stock cap alone would allow 2 ($1,200 x 2 = $2,400 < $2,500), but only
+    # $1,300 of portfolio room remains -> just 1 fits.
+    assert max_contracts(10_000, 12.0, 0.25, exposure=5700, portfolio_cap_pct=0.70) == 1
+
+
+def test_max_contracts_zero_when_no_room():
+    assert max_contracts(10_000, 12.0, 0.25, exposure=7000, portfolio_cap_pct=0.70) == 0
+    assert max_contracts(0, 12.0, 0.25, exposure=0, portfolio_cap_pct=0.70) == 0
+    assert max_contracts(10_000, 0, 0.25, exposure=0, portfolio_cap_pct=0.70) == 0
 
 
 # ---- selection ----

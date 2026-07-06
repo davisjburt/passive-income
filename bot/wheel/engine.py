@@ -32,6 +32,7 @@ from .strategy import (
     WheelState,
     annualized_yield,
     call_strike_band,
+    max_contracts,
     parse_occ,
     put_strike_band,
     reconstruct_state,
@@ -100,11 +101,11 @@ class Ledger:
 @dataclass
 class PositionsView:
     shares: dict = field(default_factory=dict)   # sym -> {qty, price, basis}
-    options: dict = field(default_factory=dict)  # underlying -> {type, occ, strike, exp}
+    options: dict = field(default_factory=dict)  # underlying -> {type, occ, strike, exp, qty}
 
     def exposure(self) -> float:
         share_notional = sum(p["qty"] * p["price"] for p in self.shares.values())
-        put_cash = sum(o["strike"] * 100 for o in self.options.values() if o["type"] == "put")
+        put_cash = sum(o["strike"] * 100 * o.get("qty", 1) for o in self.options.values() if o["type"] == "put")
         return share_notional + put_cash
 
     def wheel_names(self) -> set[str]:
@@ -120,7 +121,10 @@ def build_positions_view(trading: TradingClient) -> PositionsView:
                 under, exp, typ, strike = parse_occ(p.symbol)
             except ValueError:
                 continue
-            pv.options[under] = {"type": typ, "occ": p.symbol, "strike": strike, "exp": exp}
+            pv.options[under] = {
+                "type": typ, "occ": p.symbol, "strike": strike, "exp": exp,
+                "qty": abs(int(float(p.qty))),
+            }
         else:  # us_equity
             pv.shares[p.symbol] = {
                 "qty": float(p.qty),
@@ -147,7 +151,7 @@ def pending_option_underlyings(trading: TradingClient) -> dict:
             under, _exp, typ, strike = parse_occ(o.symbol)
         except ValueError:
             continue  # equity order, not an option
-        out[under] = {"type": typ, "strike": strike}
+        out[under] = {"type": typ, "strike": strike, "qty": abs(int(float(o.qty)))}
     return out
 
 
@@ -236,7 +240,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     pending = pending_option_underlyings(trading)
     # Count pending sell-to-open puts toward exposure + active names so caps and
     # the max-tickers limit hold even before orders fill.
-    exposure = pv.exposure() + sum(p["strike"] * 100 for p in pending.values() if p["type"] == "put")
+    exposure = pv.exposure() + sum(
+        p["strike"] * 100 * p.get("qty", 1) for p in pending.values() if p["type"] == "put")
     active = len(pv.wheel_names() | set(pending))
     today = datetime.now(timezone.utc).date()
 
@@ -298,11 +303,13 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             if not pick:
                 summary["skipped"].append(f"{sym}: no put meets filters"); continue
             c, y = pick
-            _sell_to_open(trading, c, y, cfg, dry_run, summary)
+            qty = max(1, max_contracts(equity, c.strike, cfg.per_stock_cap_pct,
+                                       exposure, cfg.portfolio_wheel_cap_pct))
+            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=qty)
             if not dry_run and not ledger.get(sym).entry_price:
                 # Reference price for the drawdown circuit-breaker on future puts.
                 ledger.get(sym).entry_price = spot
-            exposure += c.strike * 100
+            exposure += c.strike * 100 * qty
             active += 1
 
         elif state == WheelState.LONG_STOCK:
@@ -318,12 +325,14 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             if not pick:
                 summary["skipped"].append(f"{sym}: no call meets filters"); continue
             c, y = pick
-            _sell_to_open(trading, c, y, cfg, dry_run, summary)
+            call_qty = max(1, int(shr["qty"] // 100))  # one call per 100 shares held
+            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=call_qty)
 
         elif state == WheelState.PUT_OPEN:
             opt_info = pv.options.get(sym, {})
             occ = opt_info.get("occ", "")
             put_strike = opt_info.get("strike", 0.0)
+            put_qty = opt_info.get("qty", 1)
             exp = opt_info.get("exp")
             dte_remaining = (exp - today).days if exp else 0
             spot = get_spot(data, sym)
@@ -338,10 +347,10 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     new_c, y = pick
                     rolled = _execute_roll(trading, opt, occ, new_c,
                                            cfg.safeguards.limit_slippage_pct,
-                                           dry_run, summary, ledger.get(sym))
+                                           dry_run, summary, ledger.get(sym), qty=put_qty)
                     if rolled:
                         # Adjust exposure: swap old put's capital requirement for new one.
-                        exposure += (new_c.strike - put_strike) * 100
+                        exposure += (new_c.strike - put_strike) * 100 * put_qty
                 else:
                     summary["skipped"].append(f"{sym}: PUT near ITM but no roll candidate")
             elif not spot:
@@ -351,6 +360,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             opt_info = pv.options.get(sym, {})
             occ = opt_info.get("occ", "")
             call_strike = opt_info.get("strike", 0.0)
+            call_qty = opt_info.get("qty", 1)
             exp = opt_info.get("exp")
             dte_remaining = (exp - today).days if exp else 0
             spot = get_spot(data, sym)
@@ -368,7 +378,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     new_c, y = pick
                     _execute_roll(trading, opt, occ, new_c,
                                   cfg.safeguards.limit_slippage_pct,
-                                  dry_run, summary, ledger.get(sym))
+                                  dry_run, summary, ledger.get(sym), qty=call_qty)
                 else:
                     summary["skipped"].append(f"{sym}: CALL near ITM but no roll candidate")
             elif not spot:
@@ -529,9 +539,11 @@ def _current_ask(opt: OptionHistoricalDataClient, occ: str) -> float | None:
 
 def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
                   occ: str, new_c: Contract, slippage_pct: float,
-                  dry_run: bool, summary: dict, led: SymbolLedger) -> bool:
+                  dry_run: bool, summary: dict, led: SymbolLedger, qty: int = 1) -> bool:
     """Buy-to-close the existing option and sell-to-open the new one for a net credit.
 
+    qty must match the existing position's contract count — closing fewer would
+    leave a partial short open, closing more would fail outright.
     Returns True only if both live orders were submitted successfully.
     """
     existing_ask = _current_ask(opt, occ)
@@ -545,9 +557,9 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
         return False
     btc_limit = round(existing_ask * (1 + slippage_pct), 2)   # pay slightly over ask to fill
     sto_limit = round(new_c.bid * (1 - slippage_pct), 2)      # receive slightly under bid
-    msg = (f"ROLL {occ} -> {new_c.symbol}: "
+    msg = (f"ROLL {occ} -> {new_c.symbol} x{qty}: "
            f"BTC limit ${btc_limit:.2f} | STO limit ${sto_limit:.2f} "
-           f"| net ${net_credit * 100:.2f}/contract")
+           f"| net ${net_credit * 100 * qty:.2f}")
     if sto_limit <= 0:
         log.warning("ROLL: STO limit <= 0 for %s — skipping", new_c.symbol)
         return False
@@ -557,9 +569,9 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
         return False
     try:
         btc = trading.submit_order(LimitOrderRequest(
-            symbol=occ, qty=1, side=OrderSide.BUY,
+            symbol=occ, qty=qty, side=OrderSide.BUY,
             time_in_force=TimeInForce.DAY, limit_price=btc_limit))
-        log.info("BTC %s -> order %s (awaiting fill)", occ, btc.id)
+        log.info("BTC %s x%d -> order %s (awaiting fill)", occ, qty, btc.id)
     except Exception as exc:  # noqa: BLE001
         log.error("BTC order failed for %s: %s", occ, exc)
         return False
@@ -573,9 +585,9 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
         return False
     try:
         sto = trading.submit_order(LimitOrderRequest(
-            symbol=new_c.symbol, qty=1, side=OrderSide.SELL,
+            symbol=new_c.symbol, qty=qty, side=OrderSide.SELL,
             time_in_force=TimeInForce.DAY, limit_price=sto_limit))
-        log.info("STO %s -> order %s", new_c.symbol, sto.id)
+        log.info("STO %s x%d -> order %s", new_c.symbol, qty, sto.id)
     except Exception as exc:  # noqa: BLE001
         log.error("STO failed for %s after BTC filled: %s", new_c.symbol, exc)
         _alert(f"⚠️ *Wheel roll* — BTC `{occ}` filled but STO `{new_c.symbol}` failed. "
@@ -583,13 +595,13 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
         return False
     summary["actions"].append(msg)
     led.rolls += 1                             # only incremented after both legs confirmed
-    led.premium_collected += net_credit * 100
+    led.premium_collected += net_credit * 100 * qty
     return True
 
 
-def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, summary):
+def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, summary, qty: int = 1):
     limit = round(c.bid * (1 - cfg.safeguards.limit_slippage_pct), 2)
-    msg = (f"SELL-TO-OPEN {c.type.upper()} {c.symbol} "
+    msg = (f"SELL-TO-OPEN {c.type.upper()} {c.symbol} x{qty} "
            f"strike ${c.strike:.2f} bid ${c.bid:.2f} -> limit ${limit:.2f} "
            f"(~{yld*100:.1f}% ann.)")
     if dry_run or limit <= 0:
@@ -597,7 +609,7 @@ def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, s
         summary["actions"].append(f"[dry-run] {msg}")
         return
     order = trading.submit_order(LimitOrderRequest(
-        symbol=c.symbol, qty=1, side=OrderSide.SELL,
+        symbol=c.symbol, qty=qty, side=OrderSide.SELL,
         time_in_force=TimeInForce.DAY, limit_price=limit))
     log.info("%s -> order %s", msg, order.id)
     summary["actions"].append(msg)
