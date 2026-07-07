@@ -1,0 +1,65 @@
+{
+  "MARA": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 12.254999999999999,
+    "rolls": 0,
+    "last_state": "CASH",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "RIOT": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 21.605,
+    "rolls": 0,
+    "last_state": "CASH",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "SOFI": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 17.925,
+    "rolls": 0,
+    "last_state": "CASH",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "COIN": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 167.5,
+    "rolls": 0,
+    "last_state": "CASH",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "NVDA": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0,
+    "rolls": 0,
+    "last_state": "",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "TSLA": {
+    "premium_collected": 0.0,
+    "realized_pnl": 0.0,
+    "cost_basis": 0.0,
+    "entry_price": 0.0,
+    "rolls": 0,
+    "last_state": "",
+    "last_exp": "",
+    "drawdown_halt_alerted": false
+  },
+  "_meta": {
+    "morning_date": "2026-07-07"
+  }
+}
