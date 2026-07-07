@@ -5,7 +5,7 @@
     "cost_basis": 0.0,
     "entry_price": 20.715,
     "rolls": 0,
-    "last_state": "PUT_OPEN",
+    "last_state": "CASH",
     "drawdown_halt_alerted": false
   },
   "PFE": {
@@ -23,7 +23,7 @@
     "cost_basis": 0.0,
     "entry_price": 13.895,
     "rolls": 0,
-    "last_state": "PUT_OPEN",
+    "last_state": "CASH",
     "drawdown_halt_alerted": false
   },
   "KEY": {
@@ -41,7 +41,7 @@
     "cost_basis": 0.0,
     "entry_price": 17.925,
     "rolls": 0,
-    "last_state": "PUT_OPEN",
+    "last_state": "CASH",
     "drawdown_halt_alerted": false
   },
   "_meta": {

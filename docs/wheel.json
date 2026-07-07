@@ -1,37 +1,40 @@
 {
   "enabled": true,
-  "total_premium_collected": 128.0,
-  "total_realized_pnl": 82.0,
+  "total_premium_collected": 235.0,
+  "total_realized_pnl": 189.0,
   "option_positions": [
-    {
-      "underlying": "F",
-      "type": "put",
-      "strike": 12.0,
-      "expiration": "2026-07-31",
-      "qty": -1.0
-    },
     {
       "underlying": "SOFI",
       "type": "put",
       "strike": 16.0,
-      "expiration": "2026-07-31",
+      "expiration": "2026-08-21",
       "qty": -1.0
     },
     {
       "underlying": "T",
       "type": "put",
-      "strike": 18.0,
-      "expiration": "2026-08-07",
+      "strike": 19.0,
+      "expiration": "2026-08-21",
       "qty": -1.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "F",
+      "type": "put",
+      "strike": 12.0,
+      "expiration": "2026-08-21",
+      "limit": 0.23,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "T",
       "state": "PUT_OPEN",
-      "premium_collected": 15.0,
-      "realized_pnl": 15.0,
+      "premium_collected": 44.0,
+      "realized_pnl": 44.0,
       "orphaned": false
     },
     {
@@ -43,7 +46,7 @@
     },
     {
       "symbol": "F",
-      "state": "PUT_OPEN",
+      "state": "ORDER_PENDING",
       "premium_collected": 27.0,
       "realized_pnl": 11.0,
       "orphaned": false
@@ -58,8 +61,8 @@
     {
       "symbol": "SOFI",
       "state": "PUT_OPEN",
-      "premium_collected": 86.0,
-      "realized_pnl": 56.0,
+      "premium_collected": 164.0,
+      "realized_pnl": 134.0,
       "orphaned": false
     }
   ]
