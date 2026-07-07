@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 
 
@@ -30,6 +30,23 @@ def reconstruct_state(open_option_type: str | None, share_qty: float) -> WheelSt
     if share_qty and share_qty >= 100:
         return WheelState.LONG_STOCK
     return WheelState.CASH
+
+
+def is_suspicious_early_close(old_state: str, new_state: str, old_exp: date | None,
+                              today: date, buffer_days: int = 2) -> bool:
+    """True when a tracked short option appears to vanish straight to CASH days
+    before its own tracked expiration, with no roll recorded — almost always a
+    stale or incomplete positions fetch, not a real event. A short put/call can
+    only legitimately disappear to CASH via its expiration date (or via the
+    bot's own roll, which keeps state at PUT_OPEN/CALL_OPEN rather than CASH).
+    Early exercise is technically possible but rare enough that flagging it for
+    a human to check is the safer default.
+    """
+    if old_state not in ("PUT_OPEN", "CALL_OPEN") or new_state != "CASH":
+        return False
+    if not old_exp:
+        return False
+    return today < old_exp - timedelta(days=buffer_days)
 
 
 _OCC = re.compile(r"^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$")

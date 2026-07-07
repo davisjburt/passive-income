@@ -9,6 +9,7 @@ from bot.wheel.strategy import (
     aggregate_premium,
     annualized_yield,
     call_strike_band,
+    is_suspicious_early_close,
     max_contracts,
     parse_occ,
     per_stock_ok,
@@ -32,6 +33,30 @@ def test_reconstruct_state():
     assert reconstruct_state(None, 100) == WheelState.LONG_STOCK
     assert reconstruct_state(None, 0) == WheelState.CASH
     assert reconstruct_state(None, 50) == WheelState.CASH  # <100 shares isn't a wheel lot
+
+
+# ---- stale-data guard ----
+
+def test_suspicious_early_close_flags_premature_cash():
+    # exp is 24 days out -- vanishing to CASH today is not a real expiration.
+    assert is_suspicious_early_close("PUT_OPEN", "CASH", date(2026, 1, 25), TODAY) is True
+    assert is_suspicious_early_close("CALL_OPEN", "CASH", date(2026, 1, 25), TODAY) is True
+
+
+def test_suspicious_early_close_allows_real_expiration():
+    # today is on/after (exp - buffer) -> a legitimate expiration, not suspicious.
+    assert is_suspicious_early_close("PUT_OPEN", "CASH", date(2026, 1, 2), TODAY) is False
+    assert is_suspicious_early_close("PUT_OPEN", "CASH", date(2026, 1, 1), TODAY) is False
+
+
+def test_suspicious_early_close_ignores_non_cash_or_non_open_transitions():
+    assert is_suspicious_early_close("PUT_OPEN", "LONG_STOCK", date(2026, 1, 25), TODAY) is False
+    assert is_suspicious_early_close("CASH", "PUT_OPEN", None, TODAY) is False
+    assert is_suspicious_early_close("LONG_STOCK", "CASH", date(2026, 1, 25), TODAY) is False
+
+
+def test_suspicious_early_close_requires_known_expiration():
+    assert is_suspicious_early_close("PUT_OPEN", "CASH", None, TODAY) is False
 
 
 # ---- OCC parsing ----

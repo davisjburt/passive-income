@@ -32,6 +32,7 @@ from .strategy import (
     WheelState,
     annualized_yield,
     call_strike_band,
+    is_suspicious_early_close,
     max_contracts,
     parse_occ,
     put_strike_band,
@@ -61,6 +62,9 @@ class SymbolLedger:
     entry_price: float = 0.0  # underlying price when the wheel started (for drawdown)
     rolls: int = 0             # number of times this position has been rolled (capped at MAX_ROLLS)
     last_state: str = ""       # previous WheelState value — used to detect transitions
+    last_exp: str = ""         # ISO date of the last tracked open option's expiration —
+                               # used to catch a stale/incomplete positions fetch that
+                               # would otherwise look like a legitimate early close
     drawdown_halt_alerted: bool = False  # prevents repeated drawdown-halt notifications
 
 
@@ -273,10 +277,38 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         share_qty = pv.shares.get(sym, {}).get("qty", 0.0)
         state = reconstruct_state(opt_type, share_qty)
 
+        led = ledger.get(sym)
+        old_state = led.last_state
+        old_exp = None
+        if led.last_exp:
+            try:
+                old_exp = date.fromisoformat(led.last_exp)
+            except ValueError:
+                old_exp = None
+
+        # Guard against a stale/incomplete positions fetch masquerading as a real
+        # close (this is exactly how a duplicate-position incident happened: the
+        # broker briefly looked empty, the bot read that as CASH, and sold a
+        # fresh put on top of one still open). Skip this symbol entirely rather
+        # than trust an implausibly early close.
+        if is_suspicious_early_close(old_state, state.value, old_exp, today):
+            log.warning("%s: %s -> CASH looks premature vs tracked expiration %s "
+                       "-- likely a bad positions fetch. Skipping this cycle.",
+                       sym, old_state, led.last_exp)
+            if not dry_run:
+                _alert(
+                    f"⚠️ *{sym} — suspicious state change*\n"
+                    f"Was {old_state} (tracked exp {led.last_exp}); broker now shows "
+                    f"CASH well before that date with no roll recorded. Skipping "
+                    f"{sym} this cycle rather than risk selling a duplicate put — "
+                    f"will re-check next cycle."
+                )
+            summary["skipped"].append(f"{sym}: suspicious early close vs tracked expiration, skipped")
+            continue
+
         # Detect and notify state transitions (e.g. assignment, expiry, called away).
-        old_state = ledger.get(sym).last_state
         if not dry_run and old_state and old_state != state.value:
-            _notify_transition(sym, old_state, state.value, ledger.get(sym))
+            _notify_transition(sym, old_state, state.value, led)
 
         if state == WheelState.CASH:
             if not in_universe:
@@ -386,6 +418,11 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
 
         led = ledger.get(sym)
         led.last_state = state.value  # persist for transition detection next cycle
+        if state in (WheelState.PUT_OPEN, WheelState.CALL_OPEN):
+            cur_exp = pv.options.get(sym, {}).get("exp")
+            led.last_exp = cur_exp.isoformat() if cur_exp else ""
+        else:
+            led.last_exp = ""
         summary["metrics"][sym] = {
             "state": state.value,
             "premium_collected": round(led.premium_collected, 2),
