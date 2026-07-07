@@ -103,15 +103,17 @@ export async function onRequestGet(context) {
 
     // Exposure = stock notional + cash reserved against open short puts
     // (filled positions and resting sell-to-open orders both count, matching
-    // the Python bot's PositionsView.exposure() + pending-put logic).
+    // the Python bot's PositionsView.exposure() + pending-put logic). Must
+    // multiply by contract qty -- positions are no longer always 1 contract
+    // now that the bot sizes up to the per-stock cap.
     let exposure = stockPositions.reduce((sum, p) => sum + p.qty * p.current_price, 0);
     exposure += optionPositions
       .filter((o) => o.type === "put")
-      .reduce((sum, o) => sum + o.strike * 100, 0);
+      .reduce((sum, o) => sum + o.strike * 100 * Math.abs(o.qty), 0);
     for (const o of ordersRaw || []) {
       const occ = parseOcc(o.symbol);
       if (occ && occ.type === "put" && o.side === "sell") {
-        exposure += occ.strike * 100;
+        exposure += occ.strike * 100 * Math.abs(num(o.qty) || 1);
       }
     }
 
