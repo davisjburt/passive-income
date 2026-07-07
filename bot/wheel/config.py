@@ -34,7 +34,9 @@ class WheelConfig:
     safeguards: Safeguards
     api_key: str
     api_secret: str
-    paper: bool = True  # hardcoded paper; going live is a deliberate code edit
+    paper: bool = True   # hardcoded paper; going live is a deliberate code edit
+    account: str = "default"  # slug used for ledger/report file names + alert tagging;
+                              # "default" preserves the original untagged file names
 
     def validate(self) -> None:
         if not 0 < self.per_stock_cap_pct <= 1.0:
@@ -45,13 +47,20 @@ class WheelConfig:
             raise ValueError("wheel universe is empty")
 
 
-def load_wheel_config(path: str | os.PathLike | None = None) -> WheelConfig:
+def load_wheel_config(path: str | os.PathLike | None = None,
+                      account: str = "default") -> WheelConfig:
     cfg_path = Path(path) if path else ROOT / "config.wheel.yaml"
     raw = yaml.safe_load(cfg_path.read_text()) or {}
 
+    if account == "default":
+        key_env, secret_env = "ALPACA_API_KEY", "ALPACA_API_SECRET"
+    else:
+        prefix = f"ALPACA_{account.upper()}_API"
+        key_env, secret_env = f"{prefix}_KEY", f"{prefix}_SECRET"
+
     try:
-        api_key = os.environ["ALPACA_API_KEY"]
-        api_secret = os.environ["ALPACA_API_SECRET"]
+        api_key = os.environ[key_env]
+        api_secret = os.environ[secret_env]
     except KeyError as exc:
         raise SystemExit(f"Missing {exc.args[0]} — set it in .env or CI secrets.")
 
@@ -76,6 +85,7 @@ def load_wheel_config(path: str | os.PathLike | None = None) -> WheelConfig:
         safeguards=Safeguards(**(raw.get("safeguards") or {})),
         api_key=api_key,
         api_secret=api_secret,
+        account=account,
     )
     cfg.validate()
     return cfg

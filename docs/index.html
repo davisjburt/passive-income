@@ -80,6 +80,34 @@
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--pos) 20%, transparent);
       }
 
+      .switcher {
+        display: flex;
+        gap: 4px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 24px;
+      }
+      .switcher-btn {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        padding: 9px 12px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s, color 0.15s;
+      }
+      .switcher-btn:hover { color: var(--text); }
+      .switcher-btn.active {
+        background: var(--accent);
+        color: var(--bg);
+      }
+
       .hero { margin-bottom: 28px; }
       .hero .label { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
       .hero .value { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; }
@@ -200,6 +228,11 @@
         </div>
       </header>
 
+      <div class="switcher" id="switcher">
+        <button class="switcher-btn active" data-account="default">Conservative · $10k</button>
+        <button class="switcher-btn" data-account="aggressive">Aggressive · $100k</button>
+      </div>
+
       <div class="hero">
         <div class="label">Account equity</div>
         <div class="value" id="equity">—</div>
@@ -263,6 +296,11 @@
       };
 
       let wheelSymbols = []; // populated from wheel.json, used to fetch /api/prices
+      let currentAccount = localStorage.getItem("wheelAccount") || "default";
+
+      function wheelFileFor(account) {
+        return account === "default" ? "wheel.json" : `wheel_${account}.json`;
+      }
 
       function sparkline(values) {
         if (!values || values.length < 2) return '<span style="color:var(--muted)">—</span>';
@@ -364,7 +402,7 @@
 
       async function loadWheel() {
         try {
-          const res = await fetch("wheel.json?cb=" + Date.now(), { cache: "no-store" });
+          const res = await fetch(wheelFileFor(currentAccount) + "?cb=" + Date.now(), { cache: "no-store" });
           if (!res.ok) return;
           const d = await res.json();
           renderWheel(d);
@@ -374,7 +412,10 @@
 
       async function loadLive() {
         try {
-          const res = await fetch("api/live?cb=" + Date.now(), { cache: "no-store" });
+          const res = await fetch(
+            "api/live?account=" + currentAccount + "&cb=" + Date.now(),
+            { cache: "no-store" }
+          );
           if (!res.ok) return;
           const d = await res.json();
           if (!d || !d.account) return;
@@ -433,6 +474,34 @@
         await refresh();     // populates wheelSymbols before the first price fetch
         await loadPrices();
       }
+
+      function switchAccount(account) {
+        if (account === currentAccount) return;
+        currentAccount = account;
+        localStorage.setItem("wheelAccount", account);
+        document.querySelectorAll(".switcher-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.account === account);
+        });
+        // Reset to loading state so stale data from the other account doesn't
+        // linger on screen while the new account's data fetches.
+        wheelSymbols = [];
+        $("wheel-table").innerHTML = `<div class="empty">Loading…</div>`;
+        $("prices-table").innerHTML = `<div class="empty">Loading…</div>`;
+        $("pending-card").style.display = "none";
+        $("positions-card").style.display = "none";
+        $("equity").textContent = "—";
+        $("dayChange").textContent = "—";
+        $("kpi-exposure").textContent = "—";
+        $("kpi-premium").textContent = "—";
+        $("kpi-pnl").textContent = "—";
+        boot();
+      }
+
+      document.querySelectorAll(".switcher-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.account === currentAccount);
+        btn.addEventListener("click", () => switchAccount(btn.dataset.account));
+      });
+
       boot();
       setInterval(refresh, 30000);
       setInterval(loadPrices, 60000);

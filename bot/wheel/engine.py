@@ -44,7 +44,12 @@ from .strategy import (
 )
 
 log = logging.getLogger("wheel")
-LEDGER_PATH = Path(__file__).resolve().parents[2] / "docs" / "wheel_ledger.json"
+DOCS_DIR = Path(__file__).resolve().parents[2] / "docs"
+
+
+def ledger_path(account: str = "default") -> Path:
+    suffix = "" if account == "default" else f"_{account}"
+    return DOCS_DIR / f"wheel_ledger{suffix}.json"
 
 ROLL_TRIGGER_PUT  = 0.05  # roll put when spot ≤ strike × 1.05 (5% ITM buffer)
 ROLL_TRIGGER_CALL = 0.03  # roll call when spot ≥ strike × 0.97 (3% ITM buffer)
@@ -69,28 +74,30 @@ class SymbolLedger:
 
 
 class Ledger:
-    def __init__(self, data: dict | None = None):
+    def __init__(self, data: dict | None = None, path: Path | None = None):
         raw = data or {}
+        self.path = path or ledger_path("default")
         self.meta: dict = raw.get("_meta", {})  # cross-run state: notification dates
         self.data: dict[str, SymbolLedger] = {
             k: SymbolLedger(**v) for k, v in raw.items() if k != "_meta"
         }
 
     @classmethod
-    def load(cls) -> "Ledger":
-        if LEDGER_PATH.exists():
+    def load(cls, account: str = "default") -> "Ledger":
+        path = ledger_path(account)
+        if path.exists():
             try:
-                return cls(json.loads(LEDGER_PATH.read_text()))
+                return cls(json.loads(path.read_text()), path=path)
             except json.JSONDecodeError:
                 pass
-        return cls()
+        return cls(path=path)
 
     def save(self) -> None:
-        LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         out: dict = {k: vars(v) for k, v in self.data.items()}
         if self.meta:
             out["_meta"] = self.meta
-        LEDGER_PATH.write_text(json.dumps(out, indent=2))
+        self.path.write_text(json.dumps(out, indent=2))
 
     def get(self, sym: str) -> SymbolLedger:
         return self.data.setdefault(sym, SymbolLedger())
@@ -208,7 +215,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     trading = TradingClient(cfg.api_key, cfg.api_secret, paper=cfg.paper)
     data = StockHistoricalDataClient(cfg.api_key, cfg.api_secret)
     opt = OptionHistoricalDataClient(cfg.api_key, cfg.api_secret)
-    ledger = Ledger.load()
+    ledger = Ledger.load(cfg.account)
 
     summary = {"actions": [], "skipped": [], "metrics": {}}
 
@@ -235,7 +242,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                 getattr(ledger.get(s), "realized_pnl", 0.0)
                 for s in ledger.data
             )
-            _send_eod_summary(pv_eod, equity, total_prem, total_pnl)
+            _send_eod_summary(pv_eod, equity, total_prem, total_pnl, cfg.account)
             ledger.meta["eod_date"] = today_str
             ledger.save()
         return summary
@@ -301,14 +308,15 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     f"Was {old_state} (tracked exp {led.last_exp}); broker now shows "
                     f"CASH well before that date with no roll recorded. Skipping "
                     f"{sym} this cycle rather than risk selling a duplicate put — "
-                    f"will re-check next cycle."
+                    f"will re-check next cycle.",
+                    cfg.account,
                 )
             summary["skipped"].append(f"{sym}: suspicious early close vs tracked expiration, skipped")
             continue
 
         # Detect and notify state transitions (e.g. assignment, expiry, called away).
         if not dry_run and old_state and old_state != state.value:
-            _notify_transition(sym, old_state, state.value, led)
+            _notify_transition(sym, old_state, state.value, led, cfg.account)
 
         if state == WheelState.CASH:
             if not in_universe:
@@ -323,7 +331,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     dd_pct = ledger.drawdown(sym, spot) * 100
                     _alert(
                         f"⚠️ *{sym} — drawdown halt triggered*\n"
-                        f"Down {dd_pct:.1f}% from entry — pausing new puts until it recovers"
+                        f"Down {dd_pct:.1f}% from entry — pausing new puts until it recovers",
+                        cfg.account,
                     )
                     ledger.get(sym).drawdown_halt_alerted = True
                 summary["skipped"].append(f"{sym}: drawdown halt"); continue
@@ -379,7 +388,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     new_c, y = pick
                     rolled = _execute_roll(trading, opt, occ, new_c,
                                            cfg.safeguards.limit_slippage_pct,
-                                           dry_run, summary, ledger.get(sym), qty=put_qty)
+                                           dry_run, summary, ledger.get(sym), qty=put_qty,
+                                           account=cfg.account)
                     if rolled:
                         # Adjust exposure: swap old put's capital requirement for new one.
                         exposure += (new_c.strike - put_strike) * 100 * put_qty
@@ -410,7 +420,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     new_c, y = pick
                     _execute_roll(trading, opt, occ, new_c,
                                   cfg.safeguards.limit_slippage_pct,
-                                  dry_run, summary, ledger.get(sym), qty=call_qty)
+                                  dry_run, summary, ledger.get(sym), qty=call_qty,
+                                  account=cfg.account)
                 else:
                     summary["skipped"].append(f"{sym}: CALL near ITM but no roll candidate")
             elif not spot:
@@ -437,11 +448,14 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     return summary
 
 
-def _alert(text: str) -> None:
+def _alert(text: str, account: str = "default") -> None:
     """Fire-and-forget Telegram notification. Never raises. send_telegram already
     retries transient failures internally; if it still returns False, log it
     clearly so a dropped alert shows up in the run's logs instead of vanishing.
+    Non-default accounts get a tag prefix so multi-account alerts are distinguishable.
     """
+    if account != "default":
+        text = f"[{account.upper()}] {text}"
     try:
         from bot.notify import send_telegram  # lazy import — keep engine testable without Telegram env
         if not send_telegram(text):
@@ -450,7 +464,8 @@ def _alert(text: str) -> None:
         log.warning("alert send failed: %s", exc)
 
 
-def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger) -> None:
+def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger,
+                       account: str = "default") -> None:
     """Send a Telegram alert when a symbol's wheel state changes meaningfully."""
     if old == "PUT_OPEN" and new == "LONG_STOCK":
         basis = f"${led.cost_basis:.2f}" if led.cost_basis else "at strike"
@@ -458,23 +473,27 @@ def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger) -> None:
             f"📦 *{sym} — assigned*\n"
             f"Now holding 100 shares · cost basis {basis}\n"
             f"Premium banked so far: +${led.premium_collected:.2f}\n"
-            f"Will sell a covered call next cycle"
+            f"Will sell a covered call next cycle",
+            account,
         )
     elif old == "PUT_OPEN" and new == "CASH":
         _alert(
             f"✅ *{sym} — put expired worthless*\n"
             f"Full premium kept: +${led.premium_collected:.2f}\n"
-            f"Back to CASH · will sell a new put"
+            f"Back to CASH · will sell a new put",
+            account,
         )
     elif old == "CALL_OPEN" and new == "CASH":
         _alert(
             f"🎯 *{sym} — called away · wheel cycle complete!*\n"
-            f"Realized P&L: ${led.realized_pnl:+.2f}"
+            f"Realized P&L: ${led.realized_pnl:+.2f}",
+            account,
         )
     elif old == "CALL_OPEN" and new == "LONG_STOCK":
         _alert(
             f"📋 *{sym} — covered call expired*\n"
-            f"Still holding 100 shares · will sell a new call"
+            f"Still holding 100 shares · will sell a new call",
+            account,
         )
 
 
@@ -498,11 +517,12 @@ def _send_morning_briefing(pv: "PositionsView", equity: float,
         lines += ["", "*Shares held:*"] + shares_
     if watching:
         lines += ["", f"Watching for new puts: {', '.join(watching)}"]
-    _alert("\n".join(lines))
+    _alert("\n".join(lines), cfg.account)
 
 
 def _send_eod_summary(pv: "PositionsView", equity: float,
-                      total_premium: float, total_pnl: float) -> None:
+                      total_premium: float, total_pnl: float,
+                      account: str = "default") -> None:
     open_count = len(pv.options) + len(pv.shares)
     lines = [
         f"🔔 *Wheel — market closed*",
@@ -515,7 +535,7 @@ def _send_eod_summary(pv: "PositionsView", equity: float,
         lines.append("")
         for sym, info in pv.options.items():
             lines.append(f"• {sym} {info['type'].upper()} ${info['strike']:.2f} exp {info['exp']}")
-    _alert("\n".join(lines))
+    _alert("\n".join(lines), account)
 
 
 def _wait_for_fill(trading: TradingClient, order_id: str,
@@ -576,7 +596,8 @@ def _current_ask(opt: OptionHistoricalDataClient, occ: str) -> float | None:
 
 def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
                   occ: str, new_c: Contract, slippage_pct: float,
-                  dry_run: bool, summary: dict, led: SymbolLedger, qty: int = 1) -> bool:
+                  dry_run: bool, summary: dict, led: SymbolLedger, qty: int = 1,
+                  account: str = "default") -> bool:
     """Buy-to-close the existing option and sell-to-open the new one for a net credit.
 
     qty must match the existing position's contract count — closing fewer would
@@ -618,7 +639,7 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
     if not _wait_for_fill(trading, str(btc.id)):
         log.warning("ROLL: BTC %s did not fill — STO skipped, will retry next cycle", occ)
         _alert(f"⚠️ *Wheel roll* — BTC `{occ}` did not fill within 45s. "
-               f"STO skipped; bot will retry next cycle.")
+               f"STO skipped; bot will retry next cycle.", account)
         return False
     try:
         sto = trading.submit_order(LimitOrderRequest(
@@ -628,7 +649,7 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
     except Exception as exc:  # noqa: BLE001
         log.error("STO failed for %s after BTC filled: %s", new_c.symbol, exc)
         _alert(f"⚠️ *Wheel roll* — BTC `{occ}` filled but STO `{new_c.symbol}` failed. "
-               f"Position closed; next cycle opens a fresh put.")
+               f"Position closed; next cycle opens a fresh put.", account)
         return False
     summary["actions"].append(msg)
     led.rolls += 1                             # only incremented after both legs confirmed

@@ -1,0 +1,42 @@
+# ------------------------------------------------------------------
+# Options WHEEL config — MAX RISK / MAX YIELD profile.
+#
+# Separate $100k paper account. Philosophy: maximize premium collected,
+# accept much higher assignment/drawdown risk than the conservative
+# profile in config.wheel.yaml. Near-ATM strikes, short DTE, high
+# minimum yield bar so only the richest premium clears the filter.
+#
+# Universe is a deliberate mix: high-IV crypto/meme names for maximum
+# premium, plus two liquid high-beta mega-caps as (relatively) less
+# volatile ballast -- still aggressive by mega-cap standards, but far
+# less tail risk than the pure meme names.
+# ------------------------------------------------------------------
+
+enabled: true
+
+universe:
+  - MARA   # Marathon Digital, bitcoin miner, very high IV
+  - RIOT   # Riot Platforms, bitcoin miner, very high IV
+  - SOFI   # SoFi, fintech, high IV
+  - COIN   # Coinbase, crypto exchange, very high IV
+  - NVDA   # Nvidia, mega-cap, high IV for its size, very liquid options
+  - TSLA   # Tesla, mega-cap, high IV for its size, very liquid options
+
+max_wheel_tickers: 6            # all 6 can be active at once
+per_stock_cap_pct: 0.25         # 25% per position
+portfolio_wheel_cap_pct: 0.95   # deploy nearly all capital
+
+put:
+  otm_pct: [0.02, 0.08]         # 2-8% OTM -- close to the money for max premium
+  dte: [7, 21]                  # short DTE -- fast theta decay, fast cycling
+  min_annual_yield: 0.20        # 20%+ annualized -- only the richest premium qualifies
+
+call:
+  otm_above_basis_pct: [0.02, 0.05]  # 2-5% above basis -- less room to run, more premium
+  dte: [7, 21]
+  min_annual_yield: 0.20
+
+safeguards:
+  halt_new_puts_drawdown_pct: 0.30   # looser than conservative -- this account is meant to ride volatility
+  order_type: limit                  # always limit on options
+  limit_slippage_pct: 0.03           # wider slippage tolerance for faster fills on volatile names

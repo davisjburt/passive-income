@@ -1,0 +1,51 @@
+{
+  "enabled": true,
+  "total_premium_collected": 0.0,
+  "total_realized_pnl": 0.0,
+  "option_positions": [],
+  "pending_orders": [],
+  "symbols": [
+    {
+      "symbol": "MARA",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "RIOT",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "SOFI",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "COIN",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "NVDA",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    },
+    {
+      "symbol": "TSLA",
+      "state": "CASH",
+      "premium_collected": 0.0,
+      "realized_pnl": 0.0,
+      "orphaned": false
+    }
+  ]
+}

@@ -1,7 +1,11 @@
 // Cloudflare Pages Function: returns LIVE account + positions from Alpaca.
-// Mapped to the route /api/live. Keys live in Cloudflare env vars (server-side,
-// via context.env) and are never sent to the browser. The dashboard overlays
-// this on top of the committed docs/data.json snapshot.
+// Mapped to the route /api/live?account=<slug>. Keys live in Cloudflare env
+// vars (server-side, via context.env) and are never sent to the browser. The
+// dashboard overlays this on top of the committed docs/wheel*.json snapshot.
+//
+// account=default (or omitted) reads ALPACA_API_KEY/SECRET; any other slug
+// reads ALPACA_<SLUG>_API_KEY/SECRET, matching the Python side's convention
+// in bot/wheel/config.py so both halves of the pipeline agree on naming.
 
 const BASE = "https://paper-api.alpaca.markets/v2";
 // OCC option symbol, e.g. "F260710P00013500" -> AAPL, 2026-07-10, put, 13.50
@@ -36,11 +40,15 @@ function json(obj, status = 200) {
 }
 
 export async function onRequestGet(context) {
-  const { env } = context;
-  const key = env.ALPACA_API_KEY;
-  const secret = env.ALPACA_API_SECRET;
+  const { env, request } = context;
+  const account = (new URL(request.url).searchParams.get("account") || "default").toLowerCase();
+  const [keyVar, secretVar] = account === "default"
+    ? ["ALPACA_API_KEY", "ALPACA_API_SECRET"]
+    : [`ALPACA_${account.toUpperCase()}_API_KEY`, `ALPACA_${account.toUpperCase()}_API_SECRET`];
+  const key = env[keyVar];
+  const secret = env[secretVar];
   if (!key || !secret) {
-    return json({ error: "Missing ALPACA_API_KEY / ALPACA_API_SECRET env vars" }, 500);
+    return json({ error: `Missing ${keyVar} / ${secretVar} env vars` }, 500);
   }
   const headers = { "APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret };
 

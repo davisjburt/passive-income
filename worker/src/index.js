@@ -1,16 +1,16 @@
-// Cloudflare Worker — reliably triggers the GitHub "wheel" workflow on a cron.
+// Cloudflare Worker — reliably triggers the GitHub wheel workflows on a cron.
 //
 // GitHub's own scheduled (cron) events are best-effort and frequently delayed or
 // dropped, especially for short intervals. A workflow_dispatch, by contrast, runs
 // promptly. So this Worker fires on Cloudflare's (reliable) cron and pokes GitHub
-// to dispatch the wheel workflow every 5 minutes during market hours.
+// to dispatch both wheel workflows every 5 minutes during market hours.
 
 const REPO = "davisjburt/passive-income";
-const WORKFLOW = "wheel.yml";
+const WORKFLOWS = ["wheel.yml", "wheel-aggressive.yml"];
 
-async function dispatch(env) {
+async function dispatchOne(env, workflow) {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+    `https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`,
     {
       method: "POST",
       headers: {
@@ -24,7 +24,18 @@ async function dispatch(env) {
     },
   );
   if (!res.ok) {
-    throw new Error(`dispatch ${res.status}: ${await res.text()}`);
+    throw new Error(`dispatch ${workflow} ${res.status}: ${await res.text()}`);
+  }
+}
+
+async function dispatch(env) {
+  // Independent workflows/accounts -- one failing shouldn't block the other.
+  const results = await Promise.allSettled(WORKFLOWS.map((w) => dispatchOne(env, w)));
+  const failures = results
+    .map((r, i) => (r.status === "rejected" ? `${WORKFLOWS[i]}: ${r.reason}` : null))
+    .filter(Boolean);
+  if (failures.length) {
+    throw new Error(failures.join(" | "));
   }
 }
 
@@ -33,7 +44,7 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(
       dispatch(env)
-        .then(() => console.log("wheel workflow dispatched"))
+        .then(() => console.log("wheel workflows dispatched"))
         .catch((e) => console.log(String(e))),
     );
   },
@@ -42,7 +53,7 @@ export default {
   async fetch(request, env) {
     try {
       await dispatch(env);
-      return new Response("dispatched wheel workflow\n");
+      return new Response("dispatched wheel workflows\n");
     } catch (e) {
       return new Response(String(e) + "\n", { status: 502 });
     }

@@ -21,14 +21,22 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Run one options-wheel cycle.")
     ap.add_argument("--live", action="store_true",
                     help="Place real (paper) orders. Default is dry-run.")
+    ap.add_argument("--config", default=None,
+                    help="Path to a wheel config YAML (default: config.wheel.yaml).")
+    ap.add_argument("--account", default="default",
+                    help="Account slug (default: 'default'). Non-default slugs read "
+                         "ALPACA_<SLUG>_API_KEY/SECRET instead of ALPACA_API_KEY/SECRET, "
+                         "write to separate wheel_<slug>.json / wheel_ledger_<slug>.json "
+                         "files, and tag Telegram alerts with [<SLUG>].")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
-    cfg = load_wheel_config()
+    cfg = load_wheel_config(args.config, args.account)
     dry = not args.live
-    logging.getLogger("wheel").info("=== Wheel cycle [%s] ===", "DRY-RUN" if dry else "LIVE (paper)")
+    logging.getLogger("wheel").info("=== Wheel cycle [%s] account=%s ===",
+                                    "DRY-RUN" if dry else "LIVE (paper)", cfg.account)
 
     try:
         summary = run_wheel_cycle(cfg, dry_run=dry)
@@ -65,7 +73,8 @@ def main() -> int:
         from bot.notify import send_telegram
         equity = summary.get("equity", 0)
         exposure = summary.get("exposure_pct", 0)
-        header = f"🛞 *Wheel — {len(actions)} order{'s' if len(actions) != 1 else ''} placed*"
+        tag = f"[{cfg.account.upper()}] " if cfg.account != "default" else ""
+        header = f"🛞 *{tag}Wheel — {len(actions)} order{'s' if len(actions) != 1 else ''} placed*"
         body   = "\n".join(f"• {a}" for a in actions)
         footer = f"Equity: ${equity:,.2f} · Deployed: {exposure}%"
         send_telegram(f"{header}\n{body}\n\n{footer}")

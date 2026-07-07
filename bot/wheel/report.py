@@ -19,7 +19,12 @@ from .engine import Ledger, build_positions_view, pending_option_underlyings
 from .strategy import aggregate_premium, parse_occ, reconstruct_state
 
 log = logging.getLogger("wheel")
-WHEEL_FILE = Path(__file__).resolve().parents[2] / "docs" / "wheel.json"
+DOCS_DIR = Path(__file__).resolve().parents[2] / "docs"
+
+
+def wheel_file_path(account: str = "default") -> Path:
+    suffix = "" if account == "default" else f"_{account}"
+    return DOCS_DIR / f"wheel{suffix}.json"
 
 
 def _f(x, default=0.0):
@@ -49,7 +54,7 @@ def _option_fills(t: TradingClient) -> list[dict]:
 
 def build_wheel_report(cfg: WheelConfig) -> dict:
     t = TradingClient(cfg.api_key, cfg.api_secret, paper=cfg.paper)
-    led = Ledger.load()
+    led = Ledger.load(cfg.account)
     pnl = aggregate_premium(_option_fills(t))  # per-underlying premium from fills
 
     # NOTE: this file deliberately excludes anything that mark-to-market moves
@@ -116,9 +121,10 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
 
 
 def write_wheel_report(cfg: WheelConfig) -> Path:
-    WHEEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+    wheel_file = wheel_file_path(cfg.account)
+    wheel_file.parent.mkdir(parents=True, exist_ok=True)
     data = build_wheel_report(cfg)
-    WHEEL_FILE.write_text(json.dumps(data, indent=2))
+    wheel_file.write_text(json.dumps(data, indent=2))
     log.info("Wrote %s (%d option positions, %d pending orders)",
-             WHEEL_FILE, len(data["option_positions"]), len(data["pending_orders"]))
-    return WHEEL_FILE
+             wheel_file, len(data["option_positions"]), len(data["pending_orders"]))
+    return wheel_file
