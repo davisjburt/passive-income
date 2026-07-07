@@ -6,7 +6,7 @@
     "entry_price": 20.715,
     "rolls": 0,
     "last_state": "PUT_OPEN",
-    "last_exp": "2026-08-21",
+    "last_exp": "2026-08-07",
     "drawdown_halt_alerted": false
   },
   "PFE": {
@@ -26,7 +26,7 @@
     "entry_price": 13.895,
     "rolls": 0,
     "last_state": "PUT_OPEN",
-    "last_exp": "2026-08-21",
+    "last_exp": "2026-07-31",
     "drawdown_halt_alerted": false
   },
   "KEY": {
@@ -46,7 +46,7 @@
     "entry_price": 17.925,
     "rolls": 0,
     "last_state": "PUT_OPEN",
-    "last_exp": "2026-08-21",
+    "last_exp": "2026-07-31",
     "drawdown_halt_alerted": false
   },
   "_meta": {
