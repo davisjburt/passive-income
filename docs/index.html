@@ -115,7 +115,7 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 12px;
         margin-bottom: 28px;
       }
@@ -251,6 +251,10 @@
         <div class="kpi">
           <div class="label">Net option P/L</div>
           <div class="num" id="kpi-pnl">—</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Cash</div>
+          <div class="num" id="kpi-cash">—</div>
         </div>
       </div>
 
@@ -425,6 +429,7 @@
           dc.textContent = `${signed(a.day_pl)} (${pct(a.day_pl_pct)}) today`;
           dc.className = "sub " + cls(a.day_pl);
           $("kpi-exposure").textContent = a.exposure_pct.toFixed(1) + "%";
+          $("kpi-cash").textContent = money(a.cash);
           renderLivePositions(d.option_positions);
           const open = d.market_open;
           $("dot").className = "dot " + (open ? "open" : "");
@@ -494,6 +499,7 @@
         $("kpi-exposure").textContent = "—";
         $("kpi-premium").textContent = "—";
         $("kpi-pnl").textContent = "—";
+        $("kpi-cash").textContent = "—";
         boot();
       }
 
