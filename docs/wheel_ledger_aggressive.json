@@ -5,8 +5,8 @@
     "cost_basis": 0.0,
     "entry_price": 12.254999999999999,
     "rolls": 0,
-    "last_state": "CASH",
-    "last_exp": "",
+    "last_state": "PUT_OPEN",
+    "last_exp": "2026-07-17",
     "drawdown_halt_alerted": false
   },
   "RIOT": {
@@ -15,8 +15,8 @@
     "cost_basis": 0.0,
     "entry_price": 21.605,
     "rolls": 0,
-    "last_state": "CASH",
-    "last_exp": "",
+    "last_state": "PUT_OPEN",
+    "last_exp": "2026-07-17",
     "drawdown_halt_alerted": false
   },
   "SOFI": {
@@ -25,8 +25,8 @@
     "cost_basis": 0.0,
     "entry_price": 17.925,
     "rolls": 0,
-    "last_state": "CASH",
-    "last_exp": "",
+    "last_state": "PUT_OPEN",
+    "last_exp": "2026-07-17",
     "drawdown_halt_alerted": false
   },
   "COIN": {
@@ -35,8 +35,8 @@
     "cost_basis": 0.0,
     "entry_price": 167.5,
     "rolls": 0,
-    "last_state": "CASH",
-    "last_exp": "",
+    "last_state": "PUT_OPEN",
+    "last_exp": "2026-07-17",
     "drawdown_halt_alerted": false
   },
   "NVDA": {
@@ -60,7 +60,7 @@
     "drawdown_halt_alerted": false
   },
   "_meta": {
-    "morning_date": "2026-07-07",
+    "morning_date": "2026-07-08",
     "eod_date": "2026-07-07"
   }
 }
