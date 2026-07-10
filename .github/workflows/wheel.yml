@@ -50,7 +50,16 @@ jobs:
           git add docs/wheel_ledger.json docs/wheel.json
           if git diff --cached --quiet; then
             echo "No changes."
-          else
-            git commit -m "chore: update wheel ledger"
-            git push
+            exit 0
           fi
+          git commit -m "chore: update wheel ledger"
+          for i in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $i), rebasing onto latest main and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::Failed to push wheel ledger after retries."
+          exit 1
