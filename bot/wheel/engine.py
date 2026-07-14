@@ -107,6 +107,22 @@ class Ledger:
         return (e - current_price) / e if e > 0 else 0.0
 
 
+def _with_retries(fn, *args, retries: int = 3, what: str = "broker call", **kwargs):
+    """Retry a broker read call with backoff on transient errors (e.g. Alpaca
+    gateway timeouts). Mirrors the retry pattern already used for Telegram sends
+    in bot.notify -- a brief blip shouldn't fail an entire 5-minute cycle when
+    the next attempt a couple seconds later would likely succeed.
+    """
+    for attempt in range(1, retries + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:  # noqa: BLE001
+            if attempt == retries:
+                raise
+            log.warning("%s failed (attempt %d/%d): %s -- retrying", what, attempt, retries, exc)
+            time.sleep(2 ** attempt)  # 2s, 4s
+
+
 # ---------------- broker views ----------------
 
 @dataclass
@@ -125,7 +141,7 @@ class PositionsView:
 
 def build_positions_view(trading: TradingClient) -> PositionsView:
     pv = PositionsView()
-    for p in trading.get_all_positions():
+    for p in _with_retries(trading.get_all_positions, what="get_all_positions"):
         ac = getattr(p.asset_class, "value", str(p.asset_class))
         if ac == "us_option":
             try:
@@ -223,8 +239,8 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         log.warning("wheel disabled (config.wheel.yaml enabled:false). Nothing to do.")
         return summary
 
-    clock = trading.get_clock()
-    acct = trading.get_account()
+    clock = _with_retries(trading.get_clock, what="get_clock")
+    acct = _with_retries(trading.get_account, what="get_account")
     equity = float(acct.equity)
     summary["market_open"] = clock.is_open
 
