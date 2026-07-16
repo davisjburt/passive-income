@@ -25,17 +25,7 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "KEY",
-      "type": "put",
-      "strike": 21.0,
-      "expiration": "2026-08-21",
-      "limit": 0.17,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
@@ -60,7 +50,7 @@
     },
     {
       "symbol": "KEY",
-      "state": "ORDER_PENDING",
+      "state": "CASH",
       "premium_collected": 0.0,
       "realized_pnl": 0.0,
       "orphaned": false
