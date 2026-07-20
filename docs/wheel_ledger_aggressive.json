@@ -5,8 +5,8 @@
     "cost_basis": 0.0,
     "entry_price": 12.254999999999999,
     "rolls": 0,
-    "last_state": "LONG_STOCK",
-    "last_exp": "",
+    "last_state": "CALL_OPEN",
+    "last_exp": "2026-07-31",
     "drawdown_halt_alerted": false
   },
   "RIOT": {
