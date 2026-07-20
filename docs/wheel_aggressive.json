@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "total_premium_collected": 6747.0,
-  "total_realized_pnl": 6747.0,
+  "total_premium_collected": 8127.0,
+  "total_realized_pnl": 8127.0,
   "option_positions": [
     {
       "underlying": "COIN",
@@ -9,6 +9,13 @@
       "strike": 165.0,
       "expiration": "2026-07-31",
       "qty": -1.0
+    },
+    {
+      "underlying": "MARA",
+      "type": "call",
+      "strike": 12.0,
+      "expiration": "2026-07-31",
+      "qty": -20.0
     },
     {
       "underlying": "RIOT",
@@ -29,9 +36,9 @@
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "LONG_STOCK",
-      "premium_collected": 1240.0,
-      "realized_pnl": 1240.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 2620.0,
+      "realized_pnl": 2620.0,
       "orphaned": false
     },
     {
