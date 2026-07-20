@@ -1,0 +1,30 @@
+name: wheel-monitor
+
+on:
+  schedule:
+    # Deliberately GitHub's native cron only -- no Cloudflare Worker involved,
+    # so a stale/broken Worker deploy can't silence this watchdog too.
+    - cron: "*/15 13-21 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check wheel workflow heartbeats
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/check_wheel_heartbeat.py

@@ -11,3 +11,6 @@ venv/
 
 # OS
 .DS_Store
+
+# Wrangler local build cache
+.wrangler/
