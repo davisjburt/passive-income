@@ -244,26 +244,15 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     equity = float(acct.equity)
     summary["market_open"] = clock.is_open
 
+    # Market open/closed is the same NYSE calendar for every account -- not
+    # something each account's own cycle should independently decide whether to
+    # announce. The combined "market open"/"market closed" recap covering every
+    # registered account lives in scripts/send_recap.py on its own schedule
+    # (.github/workflows/recap.yml), so it's checked and sent exactly once no
+    # matter how many accounts are running. This function only needs the clock
+    # to decide whether *this account* should attempt to trade this cycle.
     if not clock.is_open and not dry_run:
         log.info("Market closed. Skipping.")
-        # EOD summary: fire once per day, only near actual market close (see
-        # _near_market_close) and only marked done if the send actually succeeded
-        # -- a failed send retries on the next cycle instead of being lost.
-        now_utc = datetime.now(timezone.utc)
-        today_str = now_utc.date().isoformat()
-        if _near_market_close(now_utc) and ledger.meta.get("eod_date") != today_str:
-            pv_eod = build_positions_view(trading)
-            total_prem = sum(
-                getattr(ledger.get(s), "premium_collected", 0.0)
-                for s in ledger.data
-            )
-            total_pnl = sum(
-                getattr(ledger.get(s), "realized_pnl", 0.0)
-                for s in ledger.data
-            )
-            if _send_eod_summary(pv_eod, equity, total_prem, total_pnl, cfg.account):
-                ledger.meta["eod_date"] = today_str
-                ledger.save()
         return summary
 
     pv = build_positions_view(trading)
@@ -277,14 +266,6 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
 
     log.info("equity=$%.0f exposure=$%.0f (%.0f%%) names=%d",
              equity, exposure, exposure / equity * 100 if equity else 0, active)
-
-    # Morning briefing: once per trading day, on the first market-open run.
-    # Only marked done if the send succeeded, same reasoning as the EOD summary.
-    if not dry_run:
-        today_str = today.isoformat()
-        if ledger.meta.get("morning_date") != today_str:
-            if _send_morning_briefing(pv, equity, exposure, cfg):
-                ledger.meta["morning_date"] = today_str
 
     # Extend the loop to cover positions that exist in the broker but have been
     # removed from the configured universe (e.g. switching from aggressive to
@@ -522,60 +503,6 @@ def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger,
             f"Still holding 100 shares · will sell a new call",
             account,
         )
-
-
-def _send_morning_briefing(pv: "PositionsView", equity: float,
-                           exposure: float, cfg: "WheelConfig") -> bool:
-    open_puts  = [f"• {sym} PUT ${info['strike']:.2f} exp {info['exp']}"
-                  for sym, info in pv.options.items() if info["type"] == "put"]
-    open_calls = [f"• {sym} CALL ${info['strike']:.2f} exp {info['exp']}"
-                  for sym, info in pv.options.items() if info["type"] == "call"]
-    shares_    = [f"• {sym} ×{int(info['qty'])} @ ${info['price']:.2f}"
-                  for sym, info in pv.shares.items()]
-    watching   = [s for s in cfg.universe if s not in pv.wheel_names()]
-
-    lines = [f"🌅 *Wheel — market open*",
-             f"Equity: ${equity:,.2f}  ·  Deployed: {exposure/equity*100:.1f}%"]
-    if open_puts:
-        lines += ["", "*Short puts:*"] + open_puts
-    if open_calls:
-        lines += ["", "*Covered calls:*"] + open_calls
-    if shares_:
-        lines += ["", "*Shares held:*"] + shares_
-    if watching:
-        lines += ["", f"Watching for new puts: {', '.join(watching)}"]
-    return _alert("\n".join(lines), cfg.account)
-
-
-def _near_market_close(now: datetime) -> bool:
-    """True during the 20:00-21:59 UTC window, which covers 4pm ET whether EDT
-    (20:00 UTC) or EST (21:00 UTC) -- with margin either side.
-
-    The EOD summary is only attempted in this window (never on a pre-market
-    tick) so that if every post-close cycle that day gets skipped for some
-    reason, the bot doesn't fire a "market closed" message the *next* morning
-    mislabeled as if it just happened -- it simply skips that day's summary,
-    which the wheel-monitor watchdog would separately flag as a dispatch gap.
-    """
-    return now.hour >= 20
-
-
-def _send_eod_summary(pv: "PositionsView", equity: float,
-                      total_premium: float, total_pnl: float,
-                      account: str = "default") -> bool:
-    open_count = len(pv.options) + len(pv.shares)
-    lines = [
-        f"🔔 *Wheel — market closed*",
-        f"Equity: ${equity:,.2f}",
-        f"Premium collected (all time): +${total_premium:.2f}",
-        f"Net realized P&L: ${total_pnl:+.2f}",
-        f"Open positions: {open_count}",
-    ]
-    if pv.options:
-        lines.append("")
-        for sym, info in pv.options.items():
-            lines.append(f"• {sym} {info['type'].upper()} ${info['strike']:.2f} exp {info['exp']}")
-    return _alert("\n".join(lines), account)
 
 
 def _wait_for_fill(trading: TradingClient, order_id: str,

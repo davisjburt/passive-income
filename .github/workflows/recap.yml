@@ -1,4 +1,12 @@
-name: wheel-aggressive
+name: wheel-recap
+
+# The single owner of the "market open" / "market closed" Telegram recap
+# covering every account in bot/wheel/accounts.py. Deliberately its own
+# workflow, decoupled from wheel.yml / wheel-aggressive.yml: those keep doing
+# their own trading and their own per-trade alerts, this only ever decides
+# "is the market open right now" and reports on all accounts at once. Adding
+# a new account means adding its secrets below and registering it in
+# bot/wheel/accounts.py -- the trading workflows never need to change.
 
 on:
   schedule:
@@ -8,20 +16,16 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: wheel-aggressive
-  # false = don't cancel the running job when a new trigger arrives.
-  # GitHub queues the newcomer and discards any older queued run, so queue
-  # depth is always ≤ 1. Cancelling mid-run risks interrupting an order
-  # submission, which is worse than a brief delay.
+  group: wheel-recap
   cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
-  wheel-aggressive:
+  recap:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -35,24 +39,26 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
-      - name: Run aggressive wheel cycle (live paper, $100k account)
+      - name: Send market open/close recap
         env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
           ALPACA_AGGRESSIVE_API_KEY: ${{ secrets.ALPACA_AGGRESSIVE_API_KEY }}
           ALPACA_AGGRESSIVE_API_SECRET: ${{ secrets.ALPACA_AGGRESSIVE_API_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python wheel_run.py --live --account aggressive
+        run: python scripts/send_recap.py
 
-      - name: Commit wheel ledger
+      - name: Commit recap state
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/wheel_ledger_aggressive.json docs/wheel_aggressive.json
+          git add docs/recap_state.json
           if git diff --cached --quiet; then
             echo "No changes."
             exit 0
           fi
-          git commit -m "chore: update aggressive wheel ledger"
+          git commit -m "chore: update recap state"
           for i in 1 2 3 4 5; do
             if git push; then
               exit 0
@@ -61,5 +67,5 @@ jobs:
             git fetch origin main
             git rebase origin/main
           done
-          echo "::error::Failed to push wheel ledger after retries."
+          echo "::error::Failed to push recap state after retries."
           exit 1

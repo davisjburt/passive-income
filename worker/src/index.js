@@ -3,10 +3,15 @@
 // GitHub's own scheduled (cron) events are best-effort and frequently delayed or
 // dropped, especially for short intervals. A workflow_dispatch, by contrast, runs
 // promptly. So this Worker fires on Cloudflare's (reliable) cron and pokes GitHub
-// to dispatch both wheel workflows every 5 minutes during market hours.
+// to dispatch every wheel workflow every 5 minutes during market hours.
+//
+// New account = new trading workflow -- add its filename here (and remember to
+// `npx wrangler deploy`, since nothing does that automatically). recap.yml is
+// the one workflow that reports on every account at once, so it's listed here
+// same as any trading workflow but never needs to grow with new accounts.
 
 const REPO = "davisjburt/passive-income";
-const WORKFLOWS = ["wheel.yml", "wheel-aggressive.yml"];
+const WORKFLOWS = ["wheel.yml", "wheel-aggressive.yml", "recap.yml"];
 
 async function dispatchOne(env, workflow) {
   const res = await fetch(

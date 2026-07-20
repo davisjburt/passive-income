@@ -22,10 +22,15 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, for `bot.notify`
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, for `bot.*`
+
+from bot.wheel.accounts import ACCOUNTS  # noqa: E402
 
 REPO = "davisjburt/passive-income"
-WORKFLOWS = ["wheel.yml", "wheel-aggressive.yml"]
+# Every registered account's trading workflow, plus the one shared recap
+# workflow. Derived from bot/wheel/accounts.py so a new account is watched
+# automatically -- nothing to remember to add here.
+WORKFLOWS = [a.workflow for a in ACCOUNTS] + ["recap.yml"]
 STALE_MINUTES = 30  # generous vs. the 5-min dispatch interval to absorb GitHub cron jitter
 
 

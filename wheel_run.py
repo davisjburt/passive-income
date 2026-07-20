@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 
+from bot.wheel.accounts import get_account
 from bot.wheel.config import load_wheel_config
 from bot.wheel.engine import run_wheel_cycle
 
@@ -22,9 +23,11 @@ def main() -> int:
     ap.add_argument("--live", action="store_true",
                     help="Place real (paper) orders. Default is dry-run.")
     ap.add_argument("--config", default=None,
-                    help="Path to a wheel config YAML (default: config.wheel.yaml).")
+                    help="Path to a wheel config YAML. Defaults to whatever "
+                         "bot/wheel/accounts.py registers for --account.")
     ap.add_argument("--account", default="default",
-                    help="Account slug (default: 'default'). Non-default slugs read "
+                    help="Account slug (default: 'default'), must be registered in "
+                         "bot/wheel/accounts.py. Non-default slugs read "
                          "ALPACA_<SLUG>_API_KEY/SECRET instead of ALPACA_API_KEY/SECRET, "
                          "write to separate wheel_<slug>.json / wheel_ledger_<slug>.json "
                          "files, and tag Telegram alerts with [<SLUG>].")
@@ -33,7 +36,13 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
-    cfg = load_wheel_config(args.config, args.account)
+    cfg_path = args.config
+    if cfg_path is None:
+        try:
+            cfg_path = get_account(args.account).config
+        except KeyError as exc:
+            raise SystemExit(f"{exc} (or pass --config explicitly for a one-off account)")
+    cfg = load_wheel_config(cfg_path, args.account)
     dry = not args.live
     logging.getLogger("wheel").info("=== Wheel cycle [%s] account=%s ===",
                                     "DRY-RUN" if dry else "LIVE (paper)", cfg.account)

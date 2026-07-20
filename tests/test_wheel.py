@@ -245,22 +245,8 @@ def test_alert_returns_false_on_exception(monkeypatch):
     assert engine._alert("hi") is False
 
 
-# ---- EOD summary timing ----
-
-def test_near_market_close_true_in_evening_window():
-    from bot.wheel.engine import _near_market_close
-    from datetime import datetime, timezone
-    assert _near_market_close(datetime(2026, 7, 20, 20, 0, tzinfo=timezone.utc)) is True
-    assert _near_market_close(datetime(2026, 7, 20, 21, 55, tzinfo=timezone.utc)) is True
-
-
-def test_near_market_close_false_before_market_open():
-    """This is the guard against the reported bug: a pre-market tick the
-    morning after a missed evening cycle must not fire a stale EOD summary."""
-    from bot.wheel.engine import _near_market_close
-    from datetime import datetime, timezone
-    assert _near_market_close(datetime(2026, 7, 20, 13, 0, tzinfo=timezone.utc)) is False
-    assert _near_market_close(datetime(2026, 7, 20, 19, 59, tzinfo=timezone.utc)) is False
+# Market-open/close recap timing (_near_market_close) now lives in
+# scripts/send_recap.py, not engine.py -- see test_recap.py.
 
 
 # ---- roll fill handling ----
@@ -370,3 +356,59 @@ def test_option_fills_dedupes_orders_reappearing_on_an_inclusive_boundary(monkey
     fills = report._option_fills(FakeClient())
     assert len(fills) == 3
     assert {f["underlying"] for f in fills} == {"T", "F", "SOFI"}
+
+
+# ---- account registry ----
+
+def test_get_account_returns_registered_account():
+    from bot.wheel.accounts import get_account
+    info = get_account("aggressive")
+    assert info.slug == "aggressive"
+    assert info.config == "config.wheel.aggressive.yaml"
+    assert info.workflow == "wheel-aggressive.yml"
+
+
+def test_get_account_raises_for_unknown_slug():
+    import pytest
+    from bot.wheel.accounts import get_account
+    with pytest.raises(KeyError):
+        get_account("does-not-exist")
+
+
+def _import_send_recap():
+    """scripts/ has no __init__.py, so import it as a plain top-level module
+    the same way send_recap.py itself resolves bot.* -- by path insertion."""
+    import sys
+    from pathlib import Path
+    scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import send_recap
+    return send_recap
+
+
+# ---- recap: one shared market-open/close owner across all accounts ----
+
+def test_recap_near_market_close_true_in_evening_window():
+    from datetime import datetime, timezone
+    send_recap = _import_send_recap()
+    assert send_recap._near_market_close(datetime(2026, 7, 20, 20, 0, tzinfo=timezone.utc)) is True
+    assert send_recap._near_market_close(datetime(2026, 7, 20, 21, 55, tzinfo=timezone.utc)) is True
+
+
+def test_recap_near_market_close_false_before_market_open():
+    """Same reasoning as the old per-account bug this replaces: a pre-market
+    tick the morning after a missed evening cycle must not fire a stale
+    "market closed" recap."""
+    from datetime import datetime, timezone
+    send_recap = _import_send_recap()
+    assert send_recap._near_market_close(datetime(2026, 7, 20, 13, 0, tzinfo=timezone.utc)) is False
+    assert send_recap._near_market_close(datetime(2026, 7, 20, 19, 59, tzinfo=timezone.utc)) is False
+
+
+def test_recap_state_round_trips(tmp_path, monkeypatch):
+    send_recap = _import_send_recap()
+    monkeypatch.setattr(send_recap, "STATE_PATH", tmp_path / "recap_state.json")
+    assert send_recap._load_state() == {}
+    send_recap._save_state({"morning_date": "2026-07-20"})
+    assert send_recap._load_state() == {"morning_date": "2026-07-20"}
