@@ -1,34 +1,27 @@
 {
   "enabled": true,
-  "total_premium_collected": 3762.0,
-  "total_realized_pnl": 3762.0,
+  "total_premium_collected": 6747.0,
+  "total_realized_pnl": 6747.0,
   "option_positions": [
     {
       "underlying": "COIN",
-      "type": "put",
-      "strike": 162.5,
-      "expiration": "2026-07-17",
+      "type": "call",
+      "strike": 165.0,
+      "expiration": "2026-07-31",
       "qty": -1.0
     },
     {
-      "underlying": "MARA",
-      "type": "put",
-      "strike": 12.0,
-      "expiration": "2026-07-17",
-      "qty": -20.0
-    },
-    {
       "underlying": "RIOT",
-      "type": "put",
-      "strike": 21.0,
-      "expiration": "2026-07-17",
+      "type": "call",
+      "strike": 20.5,
+      "expiration": "2026-07-31",
       "qty": -11.0
     },
     {
       "underlying": "SOFI",
-      "type": "put",
+      "type": "call",
       "strike": 17.5,
-      "expiration": "2026-07-17",
+      "expiration": "2026-07-31",
       "qty": -14.0
     }
   ],
@@ -36,30 +29,30 @@
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 1240.0,
       "realized_pnl": 1240.0,
       "orphaned": false
     },
     {
       "symbol": "RIOT",
-      "state": "PUT_OPEN",
-      "premium_collected": 1089.0,
-      "realized_pnl": 1089.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 2134.0,
+      "realized_pnl": 2134.0,
       "orphaned": false
     },
     {
       "symbol": "SOFI",
-      "state": "PUT_OPEN",
-      "premium_collected": 728.0,
-      "realized_pnl": 728.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 1848.0,
+      "realized_pnl": 1848.0,
       "orphaned": false
     },
     {
       "symbol": "COIN",
-      "state": "PUT_OPEN",
-      "premium_collected": 705.0,
-      "realized_pnl": 705.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 1525.0,
+      "realized_pnl": 1525.0,
       "orphaned": false
     },
     {
