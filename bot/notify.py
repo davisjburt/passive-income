@@ -25,7 +25,7 @@ _API = "https://api.telegram.org/bot{token}/{method}"
 # (morning briefing + several state transitions + order confirmations) can
 # trigger a 429 if sent back-to-back. Space sends out and retry on failure.
 _MIN_INTERVAL_S = 1.2
-_MAX_RETRIES = 3
+_MAX_RETRIES = 4
 _last_sent = 0.0
 
 

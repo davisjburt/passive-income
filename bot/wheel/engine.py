@@ -246,9 +246,12 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
 
     if not clock.is_open and not dry_run:
         log.info("Market closed. Skipping.")
-        # EOD summary: fire once on the first closed-market run of each day.
-        today_str = datetime.now(timezone.utc).date().isoformat()
-        if ledger.meta.get("eod_date") != today_str:
+        # EOD summary: fire once per day, only near actual market close (see
+        # _near_market_close) and only marked done if the send actually succeeded
+        # -- a failed send retries on the next cycle instead of being lost.
+        now_utc = datetime.now(timezone.utc)
+        today_str = now_utc.date().isoformat()
+        if _near_market_close(now_utc) and ledger.meta.get("eod_date") != today_str:
             pv_eod = build_positions_view(trading)
             total_prem = sum(
                 getattr(ledger.get(s), "premium_collected", 0.0)
@@ -258,9 +261,9 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                 getattr(ledger.get(s), "realized_pnl", 0.0)
                 for s in ledger.data
             )
-            _send_eod_summary(pv_eod, equity, total_prem, total_pnl, cfg.account)
-            ledger.meta["eod_date"] = today_str
-            ledger.save()
+            if _send_eod_summary(pv_eod, equity, total_prem, total_pnl, cfg.account):
+                ledger.meta["eod_date"] = today_str
+                ledger.save()
         return summary
 
     pv = build_positions_view(trading)
@@ -276,11 +279,12 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
              equity, exposure, exposure / equity * 100 if equity else 0, active)
 
     # Morning briefing: once per trading day, on the first market-open run.
+    # Only marked done if the send succeeded, same reasoning as the EOD summary.
     if not dry_run:
         today_str = today.isoformat()
         if ledger.meta.get("morning_date") != today_str:
-            _send_morning_briefing(pv, equity, exposure, cfg)
-            ledger.meta["morning_date"] = today_str
+            if _send_morning_briefing(pv, equity, exposure, cfg):
+                ledger.meta["morning_date"] = today_str
 
     # Extend the loop to cover positions that exist in the broker but have been
     # removed from the configured universe (e.g. switching from aggressive to
@@ -345,12 +349,12 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             if ledger.drawdown(sym, spot) >= cfg.safeguards.halt_new_puts_drawdown_pct:
                 if not dry_run and not ledger.get(sym).drawdown_halt_alerted:
                     dd_pct = ledger.drawdown(sym, spot) * 100
-                    _alert(
+                    if _alert(
                         f"⚠️ *{sym} — drawdown halt triggered*\n"
                         f"Down {dd_pct:.1f}% from entry — pausing new puts until it recovers",
                         cfg.account,
-                    )
-                    ledger.get(sym).drawdown_halt_alerted = True
+                    ):
+                        ledger.get(sym).drawdown_halt_alerted = True
                 summary["skipped"].append(f"{sym}: drawdown halt"); continue
             ledger.get(sym).drawdown_halt_alerted = False  # reset when no longer halted
             lo, hi = put_strike_band(spot, cfg.put.band)
@@ -464,20 +468,27 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
     return summary
 
 
-def _alert(text: str, account: str = "default") -> None:
-    """Fire-and-forget Telegram notification. Never raises. send_telegram already
-    retries transient failures internally; if it still returns False, log it
-    clearly so a dropped alert shows up in the run's logs instead of vanishing.
-    Non-default accounts get a tag prefix so multi-account alerts are distinguishable.
+def _alert(text: str, account: str = "default") -> bool:
+    """Never raises. send_telegram already retries transient failures internally;
+    if it still returns False, log it clearly so a dropped alert shows up in the
+    run's logs instead of vanishing. Non-default accounts get a tag prefix so
+    multi-account alerts are distinguishable.
+
+    Returns whether the send actually succeeded, so callers that track "already
+    notified today" state can skip marking it done on a failed send -- otherwise
+    a single dropped message is lost forever instead of retried next cycle.
     """
     if account != "default":
         text = f"[{account.upper()}] {text}"
     try:
         from bot.notify import send_telegram  # lazy import — keep engine testable without Telegram env
-        if not send_telegram(text):
+        ok = send_telegram(text)
+        if not ok:
             log.error("Telegram alert dropped after retries: %.80s...", text)
+        return ok
     except Exception as exc:  # noqa: BLE001
         log.warning("alert send failed: %s", exc)
+        return False
 
 
 def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger,
@@ -514,7 +525,7 @@ def _notify_transition(sym: str, old: str, new: str, led: SymbolLedger,
 
 
 def _send_morning_briefing(pv: "PositionsView", equity: float,
-                           exposure: float, cfg: "WheelConfig") -> None:
+                           exposure: float, cfg: "WheelConfig") -> bool:
     open_puts  = [f"• {sym} PUT ${info['strike']:.2f} exp {info['exp']}"
                   for sym, info in pv.options.items() if info["type"] == "put"]
     open_calls = [f"• {sym} CALL ${info['strike']:.2f} exp {info['exp']}"
@@ -533,12 +544,25 @@ def _send_morning_briefing(pv: "PositionsView", equity: float,
         lines += ["", "*Shares held:*"] + shares_
     if watching:
         lines += ["", f"Watching for new puts: {', '.join(watching)}"]
-    _alert("\n".join(lines), cfg.account)
+    return _alert("\n".join(lines), cfg.account)
+
+
+def _near_market_close(now: datetime) -> bool:
+    """True during the 20:00-21:59 UTC window, which covers 4pm ET whether EDT
+    (20:00 UTC) or EST (21:00 UTC) -- with margin either side.
+
+    The EOD summary is only attempted in this window (never on a pre-market
+    tick) so that if every post-close cycle that day gets skipped for some
+    reason, the bot doesn't fire a "market closed" message the *next* morning
+    mislabeled as if it just happened -- it simply skips that day's summary,
+    which the wheel-monitor watchdog would separately flag as a dispatch gap.
+    """
+    return now.hour >= 20
 
 
 def _send_eod_summary(pv: "PositionsView", equity: float,
                       total_premium: float, total_pnl: float,
-                      account: str = "default") -> None:
+                      account: str = "default") -> bool:
     open_count = len(pv.options) + len(pv.shares)
     lines = [
         f"🔔 *Wheel — market closed*",
@@ -551,7 +575,7 @@ def _send_eod_summary(pv: "PositionsView", equity: float,
         lines.append("")
         for sym, info in pv.options.items():
             lines.append(f"• {sym} {info['type'].upper()} ${info['strike']:.2f} exp {info['exp']}")
-    _alert("\n".join(lines), account)
+    return _alert("\n".join(lines), account)
 
 
 def _wait_for_fill(trading: TradingClient, order_id: str,

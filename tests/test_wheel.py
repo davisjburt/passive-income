@@ -221,3 +221,43 @@ def test_notify_trades_empty_is_noop(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "y")
     assert notify.notify_trades([]) is False
+
+
+def test_alert_returns_true_on_successful_send(monkeypatch):
+    from bot.wheel import engine
+    monkeypatch.setattr("bot.notify.send_telegram", lambda text: True)
+    assert engine._alert("hi") is True
+
+
+def test_alert_returns_false_on_failed_send(monkeypatch):
+    """A dropped Telegram send must be reported back, not swallowed -- callers
+    rely on this to avoid marking a daily notification as sent when it wasn't."""
+    from bot.wheel import engine
+    monkeypatch.setattr("bot.notify.send_telegram", lambda text: False)
+    assert engine._alert("hi") is False
+
+
+def test_alert_returns_false_on_exception(monkeypatch):
+    from bot.wheel import engine
+    def boom(text):
+        raise RuntimeError("network exploded")
+    monkeypatch.setattr("bot.notify.send_telegram", boom)
+    assert engine._alert("hi") is False
+
+
+# ---- EOD summary timing ----
+
+def test_near_market_close_true_in_evening_window():
+    from bot.wheel.engine import _near_market_close
+    from datetime import datetime, timezone
+    assert _near_market_close(datetime(2026, 7, 20, 20, 0, tzinfo=timezone.utc)) is True
+    assert _near_market_close(datetime(2026, 7, 20, 21, 55, tzinfo=timezone.utc)) is True
+
+
+def test_near_market_close_false_before_market_open():
+    """This is the guard against the reported bug: a pre-market tick the
+    morning after a missed evening cycle must not fire a stale EOD summary."""
+    from bot.wheel.engine import _near_market_close
+    from datetime import datetime, timezone
+    assert _near_market_close(datetime(2026, 7, 20, 13, 0, tzinfo=timezone.utc)) is False
+    assert _near_market_close(datetime(2026, 7, 20, 19, 59, tzinfo=timezone.utc)) is False
