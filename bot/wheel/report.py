@@ -34,21 +34,47 @@ def _f(x, default=0.0):
         return default
 
 
+_ORDERS_PAGE_SIZE = 500
+_MAX_ORDER_PAGES = 20  # 20 x 500 = 10k orders of headroom -- plenty for this bot's cadence
+
+
 def _option_fills(t: TradingClient) -> list[dict]:
-    """Filled option orders -> premium fills for aggregate_premium()."""
-    fills = []
-    for o in t.get_orders(GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=500)):
-        if not o.filled_at or not o.filled_avg_price or not o.filled_qty:
-            continue
-        try:
-            under, _exp, _typ, _strike = parse_occ(o.symbol)
-        except ValueError:
-            continue  # equity order
-        side = getattr(o.side, "value", str(o.side))
-        fills.append({
-            "underlying": under, "side": side,
-            "credit": _f(o.filled_avg_price) * _f(o.filled_qty) * 100,
-        })
+    """Filled option orders -> premium fills for aggregate_premium().
+
+    Alpaca caps a single orders page at 500, and defaults to newest-first. A
+    single unpaginated call would silently start dropping the oldest fills
+    from the "all time" premium/P&L totals once the account's history passes
+    500 closed orders (each roll alone submits 2). Paginate backwards by
+    `until` so the totals stay complete as history grows.
+    """
+    fills: list[dict] = []
+    seen_ids: set = set()
+    until = None
+    for _ in range(_MAX_ORDER_PAGES):
+        batch = t.get_orders(GetOrdersRequest(
+            status=QueryOrderStatus.CLOSED, limit=_ORDERS_PAGE_SIZE, until=until))
+        if not batch:
+            break
+        for o in batch:
+            # `until` may be an inclusive boundary depending on the API, so the
+            # earliest order of one page can reappear as the latest of the next
+            # -- dedupe by order id rather than assume either way.
+            if o.id in seen_ids:
+                continue
+            seen_ids.add(o.id)
+            if o.filled_at and o.filled_avg_price and o.filled_qty:
+                try:
+                    under, _exp, _typ, _strike = parse_occ(o.symbol)
+                except ValueError:
+                    continue  # equity order
+                side = getattr(o.side, "value", str(o.side))
+                fills.append({
+                    "underlying": under, "side": side,
+                    "credit": _f(o.filled_avg_price) * _f(o.filled_qty) * 100,
+                })
+        if len(batch) < _ORDERS_PAGE_SIZE:
+            break
+        until = min(o.submitted_at for o in batch)
     return fills
 
 

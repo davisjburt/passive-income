@@ -1,7 +1,9 @@
 """One-shot script: cancel all orders, close all positions, wipe the local ledger.
 
-    python reset_paper.py          # preview what will be cancelled/closed
-    python reset_paper.py --live   # actually do it
+    python reset_paper.py                          # preview the default (conservative) account
+    python reset_paper.py --live                    # actually reset the default account
+    python reset_paper.py --account aggressive       # preview the aggressive account
+    python reset_paper.py --account aggressive --live  # actually reset the aggressive account
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from bot.wheel.config import load_wheel_config
+from bot.wheel.engine import ledger_path as wheel_ledger_path
 
 ROOT = Path(__file__).parent
 load_dotenv(ROOT / ".env")
@@ -21,15 +24,27 @@ load_dotenv(ROOT / ".env")
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="Actually cancel/close. Default is dry-run.")
+    ap.add_argument("--account", default="default",
+                    help="Account slug (default: 'default'). Matches wheel_run.py's --account -- "
+                         "'aggressive' resets the $100k aggressive account instead of the "
+                         "conservative one, reading ALPACA_AGGRESSIVE_API_KEY/SECRET and "
+                         "config.wheel.aggressive.yaml.")
+    ap.add_argument("--config", default=None,
+                    help="Path to a wheel config YAML. Defaults to config.wheel.yaml for the "
+                         "default account, or config.wheel.<account>.yaml otherwise.")
     args = ap.parse_args()
     dry = not args.live
 
-    cfg = load_wheel_config()
+    cfg_path = args.config
+    if cfg_path is None and args.account != "default":
+        cfg_path = ROOT / f"config.wheel.{args.account}.yaml"
+    cfg = load_wheel_config(cfg_path, args.account)
     from alpaca.trading.client import TradingClient
     t = TradingClient(cfg.api_key, cfg.api_secret, paper=True)
 
+    print(f"\nAccount        : {args.account}")
     acct = t.get_account()
-    print(f"\nAccount equity : ${float(acct.equity):,.2f}")
+    print(f"Account equity : ${float(acct.equity):,.2f}")
     print(f"Buying power   : ${float(acct.buying_power):,.2f}")
 
     # Open orders
@@ -62,7 +77,7 @@ def main() -> int:
     print("  done.")
 
     # Wipe local ledger so the bot starts fresh
-    ledger_path = ROOT / "docs" / "wheel_ledger.json"
+    ledger_path = wheel_ledger_path(args.account)
     if ledger_path.exists():
         ledger_path.write_text("{}")
         print(f"Cleared {ledger_path.name}.")

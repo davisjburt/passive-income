@@ -580,21 +580,29 @@ def _send_eod_summary(pv: "PositionsView", equity: float,
 
 def _wait_for_fill(trading: TradingClient, order_id: str,
                    timeout_s: int = 45, poll_s: int = 5) -> bool:
-    """Poll an order until it fills or reaches a terminal non-fill status.
+    """Poll an order until it *fully* fills or reaches a terminal non-fill status.
 
     We wait before placing the STO leg of a roll so that if the BTC doesn't fill
     (e.g. limit too tight, illiquid), the STO is never submitted and the position
     remains intact. This prevents the partial-roll scenario where BTC fills but STO
     is never placed, leaving the account without coverage until the next cycle.
+
+    Only a full fill counts as done -- "partially_filled" is not a terminal
+    Alpaca order state (the order keeps working toward the rest), so treating it
+    as success here would let the caller submit the STO leg for the full
+    original quantity while only part of the old contracts were actually bought
+    back, doubling up exposure on the unclosed remainder. On timeout with a
+    fill still partial, the unfilled remainder is cancelled so it can't
+    complete unexpectedly later; the next cycle just re-reads whatever quantity
+    the broker actually shows.
     """
-    _FILLED = {"filled", "partially_filled"}
     _TERMINAL = {"cancelled", "expired", "rejected", "done_for_day"}
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         try:
             o = trading.get_order_by_id(order_id)
             status = getattr(o.status, "value", str(o.status))
-            if status in _FILLED:
+            if status == "filled":
                 return True
             if status in _TERMINAL:
                 log.warning("order %s ended with status %s", order_id, status)
@@ -602,7 +610,11 @@ def _wait_for_fill(trading: TradingClient, order_id: str,
         except Exception as exc:  # noqa: BLE001
             log.warning("poll order %s failed: %s", order_id, exc)
         time.sleep(poll_s)
-    log.warning("order %s did not fill within %ds", order_id, timeout_s)
+    log.warning("order %s did not fully fill within %ds", order_id, timeout_s)
+    try:
+        trading.cancel_order_by_id(order_id)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("cancel of unfilled/partial order %s failed: %s", order_id, exc)
     return False
 
 
@@ -689,7 +701,7 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
     except Exception as exc:  # noqa: BLE001
         log.error("STO failed for %s after BTC filled: %s", new_c.symbol, exc)
         _alert(f"⚠️ *Wheel roll* — BTC `{occ}` filled but STO `{new_c.symbol}` failed. "
-               f"Position closed; next cycle opens a fresh put.", account)
+               f"Position closed; next cycle opens a fresh {new_c.type}.", account)
         return False
     summary["actions"].append(msg)
     led.rolls += 1                             # only incremented after both legs confirmed

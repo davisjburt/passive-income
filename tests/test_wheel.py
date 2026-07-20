@@ -261,3 +261,112 @@ def test_near_market_close_false_before_market_open():
     from datetime import datetime, timezone
     assert _near_market_close(datetime(2026, 7, 20, 13, 0, tzinfo=timezone.utc)) is False
     assert _near_market_close(datetime(2026, 7, 20, 19, 59, tzinfo=timezone.utc)) is False
+
+
+# ---- roll fill handling ----
+
+class _FakeOrder:
+    def __init__(self, status):
+        self.status = status
+
+
+class _FakeTradingClient:
+    """Returns each queued status once, then repeats the last one forever --
+    enough to simulate both "eventually fills" and "never finishes" cases."""
+    def __init__(self, statuses):
+        self._statuses = list(statuses)
+        self.cancelled = []
+
+    def get_order_by_id(self, order_id):
+        status = self._statuses.pop(0) if len(self._statuses) > 1 else self._statuses[0]
+        return _FakeOrder(status)
+
+    def cancel_order_by_id(self, order_id):
+        self.cancelled.append(order_id)
+
+
+def test_wait_for_fill_ignores_partial_and_waits_for_full():
+    """The bug: a partial buy-to-close fill was treated as "done," so the
+    sell-to-open leg of a roll got submitted for the full original quantity
+    even though only part of the old contracts had actually closed."""
+    from bot.wheel.engine import _wait_for_fill
+    client = _FakeTradingClient(["partially_filled", "partially_filled", "filled"])
+    assert _wait_for_fill(client, "order-1", timeout_s=1, poll_s=0.01) is True
+    assert client.cancelled == []
+
+
+def test_wait_for_fill_cancels_remainder_if_still_partial_at_timeout():
+    from bot.wheel.engine import _wait_for_fill
+    client = _FakeTradingClient(["partially_filled"])
+    assert _wait_for_fill(client, "order-1", timeout_s=0.05, poll_s=0.02) is False
+    assert client.cancelled == ["order-1"]
+
+
+# ---- report.py order pagination ----
+
+def test_option_fills_paginates_beyond_one_page(monkeypatch):
+    from bot.wheel import report
+    from datetime import datetime, timedelta, timezone
+
+    class FakeOrder:
+        def __init__(self, oid, symbol, side, qty, price, submitted_at):
+            self.id = oid
+            self.symbol = symbol
+            self.side = side
+            self.filled_qty = qty
+            self.filled_avg_price = price
+            self.filled_at = submitted_at
+            self.submitted_at = submitted_at
+
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    orders = [  # newest first, matching Alpaca's default direction
+        FakeOrder("3", "T260807P00018000", "sell", 1, 0.15, base + timedelta(days=2)),
+        FakeOrder("2", "F260731P00012000", "sell", 1, 0.13, base + timedelta(days=1)),
+        FakeOrder("1", "SOFI260731P00016000", "sell", 1, 0.56, base),
+    ]
+
+    class FakeClient:
+        def get_orders(self, req):
+            if req.until is None:
+                return orders[:2]
+            return [o for o in orders if o.submitted_at < req.until][:2]
+
+    monkeypatch.setattr(report, "_ORDERS_PAGE_SIZE", 2)
+    fills = report._option_fills(FakeClient())
+    assert {f["underlying"] for f in fills} == {"T", "F", "SOFI"}
+
+
+def test_option_fills_dedupes_orders_reappearing_on_an_inclusive_boundary(monkeypatch):
+    """If the API's `until` turns out to be inclusive rather than exclusive, the
+    boundary order would appear as both the last item of one page and the first
+    item of the next -- must not be double-counted in the premium totals."""
+    from bot.wheel import report
+    from datetime import datetime, timedelta, timezone
+
+    class FakeOrder:
+        def __init__(self, oid, symbol, side, qty, price, submitted_at):
+            self.id = oid
+            self.symbol = symbol
+            self.side = side
+            self.filled_qty = qty
+            self.filled_avg_price = price
+            self.filled_at = submitted_at
+            self.submitted_at = submitted_at
+
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    orders = [
+        FakeOrder("3", "T260807P00018000", "sell", 1, 0.15, base + timedelta(days=2)),
+        FakeOrder("2", "F260731P00012000", "sell", 1, 0.13, base + timedelta(days=1)),
+        FakeOrder("1", "SOFI260731P00016000", "sell", 1, 0.56, base),
+    ]
+
+    class FakeClient:
+        def get_orders(self, req):
+            if req.until is None:
+                return orders[:2]
+            return [o for o in orders if o.submitted_at <= req.until][:2]  # inclusive
+
+    monkeypatch.setattr(report, "_ORDERS_PAGE_SIZE", 2)
+    fills = report._option_fills(FakeClient())
+    assert len(fills) == 3
+    assert {f["underlying"] for f in fills} == {"T", "F", "SOFI"}
