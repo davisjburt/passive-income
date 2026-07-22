@@ -1,0 +1,40 @@
+# ------------------------------------------------------------------
+# Momentum config — dual/absolute-momentum ETF rotation.
+#
+# Philosophy: unlike the two options-wheel accounts (income from selling
+# premium, capped upside), this one tries to actually track/beat a long-term
+# equity benchmark by rotating 100% of the account into whichever of a small
+# set of equity ETFs has the strongest trailing 12-month total return, but
+# only if that return also beats the safe asset's -- otherwise it moves
+# entirely into the safe asset. Rebalanced once a month, not every 5 minutes.
+#
+# Backtested (see backtest_momentum.py) over 2002-2026 (Yahoo Finance monthly
+# adjusted closes, not live trading data): roughly tied SPY buy-and-hold on
+# CAGR (11.2% vs 11.1%) while cutting max drawdown roughly in half (-24% vs
+# -51%) -- during Sep 2007-Mar 2009 specifically, -10.6% vs SPY's -46.0%. It
+# did NOT beat SPY or QQQ buy-and-hold over the shorter 2020-2026 window --
+# be honest with yourself about that before expecting magic. The real case
+# for this strategy is avoiding catastrophic drawdowns, not beating the index
+# every single year.
+# ------------------------------------------------------------------
+
+enabled: true
+
+# Risky candidates: broad, liquid, cheap ETFs spanning US large-cap, US
+# growth/tech, US small-cap, and international developed markets. The bot
+# holds 100% of ONE of these (whichever has the best trailing momentum) or
+# the safe asset -- never a blend, by design (see strategy.py).
+risky_universe:
+  - SPY   # S&P 500
+  - QQQ   # Nasdaq-100 (growth/tech tilt)
+  - IWM   # Russell 2000 (US small-cap)
+  - EFA   # MSCI EAFE (international developed)
+
+# Safe asset: held when no risky asset's momentum beats it (absolute
+# momentum filter). Short-term treasuries -- low volatility, still yields
+# something, doesn't gap down when equities crash.
+safe_symbol: SHY
+
+lookback_months: 12   # trailing total-return window used to rank momentum
+cash_buffer_pct: 0.01 # leave ~1% in cash so a full-notional buy order doesn't
+                      # reject on a rounding/price-move edge case
