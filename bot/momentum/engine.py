@@ -110,10 +110,11 @@ def run_momentum_cycle(cfg: MomentumConfig, dry_run: bool = True) -> dict:
 
     today = datetime.now(timezone.utc).date()
     month_str = today.strftime("%Y-%m")
-    if state.get("last_rebalance_month") == month_str:
-        log.info("Already rebalanced for %s. Skipping.", month_str)
-        return summary
 
+    # Trailing returns are fetched every day regardless of whether this month
+    # has already been rebalanced -- cheap (one data-API call), and it keeps
+    # docs/momentum_<account>.json (the dashboard's source) showing today's
+    # standings rather than going stale until next month's actual trade.
     universe = list(cfg.risky_universe) + [cfg.safe_symbol]
     prices = fetch_trailing_prices(data, universe, cfg.lookback_months, today)
     missing = [s for s in universe if s not in prices]
@@ -129,21 +130,33 @@ def run_momentum_cycle(cfg: MomentumConfig, dry_run: bool = True) -> dict:
     safe_then, safe_now = prices[cfg.safe_symbol]
     safe_return = trailing_return(safe_now, safe_then)
     target = choose_holding(risky_returns, cfg.safe_symbol, safe_return)
+    summary["trailing_returns"] = {**risky_returns, cfg.safe_symbol: safe_return}
+    summary["target"] = target
 
     log.info("Trailing %dmo returns: %s | safe(%s)=%.1f%% -> target=%s",
              cfg.lookback_months,
              {s: f"{r*100:.1f}%" for s, r in risky_returns.items()},
              cfg.safe_symbol, safe_return * 100, target)
 
+    if state.get("last_rebalance_month") == month_str:
+        log.info("Already rebalanced for %s. Nothing further to do today.", month_str)
+        return summary
+
     current = _current_holding(trading, universe)
     summary["holding"] = current
+
+    def _record_month(holding: str) -> None:
+        history = state.get("history", [])
+        history.append({"month": month_str, "holding": holding})
+        state["history"] = history[-24:]  # cap growth; 2 years of monthly entries is plenty
+        state["last_rebalance_month"] = month_str
+        state["current_holding"] = holding
+        save_state(state, cfg.account)
 
     if current == target:
         log.info("Already holding %s. No rebalance needed.", target)
         if not dry_run:
-            state["last_rebalance_month"] = month_str
-            state["current_holding"] = target
-            save_state(state, cfg.account)
+            _record_month(target)
         return summary
 
     msg = f"Rotate {current or 'CASH'} -> {target}"
@@ -169,9 +182,7 @@ def run_momentum_cycle(cfg: MomentumConfig, dry_run: bool = True) -> dict:
         side=OrderSide.BUY, time_in_force=TimeInForce.DAY,
     ), what=f"submit_order[{target}]")
 
-    state["last_rebalance_month"] = month_str
-    state["current_holding"] = target
-    save_state(state, cfg.account)
+    _record_month(target)
     summary["rebalanced"] = True
     summary["holding"] = target
     _alert(f"🔄 *Rebalanced* — {current or 'CASH'} → *{target}*\n"

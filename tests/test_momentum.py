@@ -95,3 +95,11 @@ def test_current_holding_ignores_positions_outside_the_universe():
     from bot.momentum.engine import _current_holding
     trading = _FakeTradingClient([_FakePosition("AAPL", "5")])
     assert _current_holding(trading, ["SPY", "QQQ", "EFA", "IWM", "SHY"]) is None
+
+
+# ---- report file path ----
+
+def test_momentum_file_path_is_account_specific():
+    from bot.momentum.report import momentum_file_path
+    assert momentum_file_path("momentum").name == "momentum_momentum.json"
+    assert momentum_file_path("other").name == "momentum_other.json"

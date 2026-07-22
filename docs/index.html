@@ -250,6 +250,7 @@
       <div class="switcher" id="switcher">
         <button class="switcher-btn active" data-account="default">Conservative · $10k</button>
         <button class="switcher-btn" data-account="aggressive">Aggressive · $100k</button>
+        <button class="switcher-btn" data-account="momentum">Momentum · $50k</button>
       </div>
 
       <div class="hero">
@@ -264,11 +265,11 @@
           <div class="num" id="kpi-exposure">—</div>
         </div>
         <div class="kpi">
-          <div class="label">Premium collected</div>
+          <div class="label" id="kpi-premium-label">Premium collected</div>
           <div class="num" id="kpi-premium">—</div>
         </div>
         <div class="kpi">
-          <div class="label">Net option P/L</div>
+          <div class="label" id="kpi-pnl-label">Net option P/L</div>
           <div class="num" id="kpi-pnl">—</div>
         </div>
         <div class="kpi">
@@ -288,17 +289,17 @@
       </div>
 
       <div class="card">
-        <h2>Wheel — per symbol</h2>
+        <h2 id="wheel-heading">Wheel — per symbol</h2>
         <div id="wheel-table"><div class="empty">Loading…</div></div>
       </div>
 
       <div class="card" id="pending-card" style="display:none">
-        <h2>Pending orders</h2>
+        <h2 id="pending-heading">Pending orders</h2>
         <div id="pending-table"></div>
       </div>
 
       <div class="card" id="positions-card" style="display:none">
-        <h2>Open option positions</h2>
+        <h2 id="positions-heading">Open option positions</h2>
         <div id="positions-table"></div>
       </div>
 
@@ -323,12 +324,19 @@
         "ORDER_PENDING": '<span class="badge pending">PENDING</span>',
       };
 
-      let wheelSymbols = []; // populated from wheel.json, used to fetch /api/prices
+      // "wheel" accounts (options premium-selling) render PUT/CALL state per
+      // symbol; "momentum" (ETF rotation, no options) renders a single
+      // holding + trailing-return standings instead. Add a new account's
+      // slug here when it exists -- everything else keys off this map.
+      const ACCOUNT_TYPE = { default: "wheel", aggressive: "wheel", momentum: "momentum" };
+
+      let wheelSymbols = []; // populated from wheel/momentum json, used to fetch /api/prices
       let currentAccount = localStorage.getItem("wheelAccount") || "default";
       let latestOptionPositions = []; // from /api/live, used to paint OTM/ITM status
       let latestPrices = {};          // from /api/prices, keyed by underlying
 
       function wheelFileFor(account) {
+        if (ACCOUNT_TYPE[account] === "momentum") return `momentum_${account}.json`;
         return account === "default" ? "wheel.json" : `wheel_${account}.json`;
       }
 
@@ -350,6 +358,12 @@
       }
 
       function renderWheel(d) {
+        $("kpi-premium-label").textContent = "Premium collected";
+        $("kpi-pnl-label").textContent = "Net option P/L";
+        $("wheel-heading").textContent = "Wheel — per symbol";
+        $("pending-heading").textContent = "Pending orders";
+        $("positions-heading").textContent = "Open option positions";
+
         $("kpi-premium").textContent = money(d.total_premium_collected);
         const pnl = d.total_realized_pnl || 0;
         $("kpi-pnl").innerHTML = `<span class="${cls(pnl)}">${signed(pnl)}</span>`;
@@ -405,6 +419,82 @@
           $("pending-card").style.display = "none";
         }
 
+      }
+
+      // Momentum accounts (ETF rotation, no options) render into the same
+      // cards as a wheel account, just with different content: the
+      // "Wheel — per symbol" card becomes trailing-return standings for the
+      // whole candidate universe, "Pending orders" becomes rotation history,
+      // and "Open option positions" becomes the single current holding (see
+      // paintMomentumPosition, fed by /api/live once it resolves).
+      function renderMomentum(d) {
+        $("kpi-premium-label").textContent = "Current holding";
+        $("kpi-premium").textContent = d.current_holding || "CASH";
+
+        $("kpi-pnl-label").textContent = `Trailing ${d.lookback_months || 12}mo`;
+        const returns = d.trailing_returns || {};
+        const bestReturn = d.current_holding && returns[d.current_holding] !== undefined
+          ? returns[d.current_holding] : null;
+        $("kpi-pnl").innerHTML = bestReturn !== null
+          ? `<span class="${cls(bestReturn)}">${pct(bestReturn * 100)}</span>` : "—";
+
+        // "Live prices" card reuses the universe list -- same /api/prices path
+        // wheel accounts use, just fed a different symbol list.
+        wheelSymbols = [...(d.risky_universe || []), d.safe_symbol].filter(Boolean);
+
+        $("wheel-heading").textContent = "Momentum — trailing returns";
+        const universe = [...(d.risky_universe || []), d.safe_symbol].filter(Boolean);
+        const rows = universe.map((sym) => {
+          const r = returns[sym];
+          const isSafe = sym === d.safe_symbol;
+          const isHolding = sym === d.current_holding;
+          const tag = isHolding
+            ? '<span class="badge otm">HOLDING</span>'
+            : (isSafe ? '<span class="badge stock">SAFE ASSET</span>' : "");
+          return `<tr class="${isHolding ? "" : "orphaned"}">
+            <td class="sym">${sym}</td>
+            <td class="mono ${r !== undefined ? cls(r) : ""}">${r !== undefined ? pct(r * 100) : "—"}</td>
+            <td>${tag}</td>
+          </tr>`;
+        }).join("");
+        $("wheel-table").innerHTML = `<table>
+          <thead><tr><th>Symbol</th><th>Trailing ${d.lookback_months || 12}mo</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table>`;
+
+        $("pending-heading").textContent = "Rotation history";
+        const history = (d.history || []).slice().reverse();
+        if (history.length) {
+          const hRows = history.map((h) => `<tr><td class="sym">${h.month}</td><td>${h.holding}</td></tr>`).join("");
+          $("pending-table").innerHTML = `<table>
+            <thead><tr><th>Month</th><th>Held</th></tr></thead>
+            <tbody>${hRows}</tbody></table>`;
+          $("pending-card").style.display = "";
+        } else {
+          $("pending-card").style.display = "none";
+        }
+
+        $("positions-heading").textContent = "Current position";
+      }
+
+      // The momentum account's single ETF holding -- from /api/live's generic
+      // stock `positions` array (there are no options here), so this always
+      // reflects live price/unrealized P&L rather than the static snapshot.
+      function paintMomentumPosition(positions) {
+        const pos = (positions || [])[0];
+        if (!pos) {
+          $("positions-card").style.display = "none";
+          return;
+        }
+        $("positions-table").innerHTML = `<table>
+          <thead><tr><th>Symbol</th><th>Qty</th><th>Avg entry</th><th>Current</th><th>Unreal. P/L</th></tr></thead>
+          <tbody><tr>
+            <td class="sym">${pos.symbol}</td>
+            <td class="mono">${pos.qty.toFixed(2)}</td>
+            <td class="mono">${money(pos.avg_entry)}</td>
+            <td class="mono">${money(pos.current_price)}</td>
+            <td class="mono ${cls(pos.unrealized_pl)}">${signed(pos.unrealized_pl)}</td>
+          </tr></tbody></table>`;
+        $("positions-card").style.display = "";
       }
 
       // Open option positions — sourced from /api/live (fetched fresh from Alpaca
@@ -487,7 +577,11 @@
           const res = await fetch(wheelFileFor(currentAccount) + "?cb=" + Date.now(), { cache: "no-store" });
           if (!res.ok) return;
           const d = await res.json();
-          renderWheel(d);
+          if (ACCOUNT_TYPE[currentAccount] === "momentum") {
+            renderMomentum(d);
+          } else {
+            renderWheel(d);
+          }
           $("updated").textContent = "Updated just now";
         } catch (e) { /* leave loading state */ }
       }
@@ -508,7 +602,11 @@
           dc.className = "sub " + cls(a.day_pl);
           $("kpi-exposure").textContent = a.exposure_pct.toFixed(1) + "%";
           $("kpi-cash").textContent = money(a.cash);
-          renderLivePositions(d.option_positions);
+          if (ACCOUNT_TYPE[currentAccount] === "momentum") {
+            paintMomentumPosition(d.positions);
+          } else {
+            renderLivePositions(d.option_positions);
+          }
           renderBenchmark(d.benchmark);
           const open = d.market_open;
           $("dot").className = "dot " + (open ? "open" : "");

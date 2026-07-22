@@ -45,6 +45,14 @@ def main() -> int:
         logging.getLogger("momentum").exception("Momentum cycle failed")
         return 1
 
+    # Always refresh the dashboard's momentum data, whether or not today's
+    # cycle actually rebalanced anything.
+    try:
+        from bot.momentum.report import write_momentum_report
+        write_momentum_report(cfg)
+    except Exception:
+        logging.getLogger("momentum").exception("Momentum report failed")
+
     print("\n--- Momentum summary ---")
     print(f"Holding: {summary.get('holding') or 'CASH'}")
     print(f"Rebalanced this run: {summary.get('rebalanced')}")

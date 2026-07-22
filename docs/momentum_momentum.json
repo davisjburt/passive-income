@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "risky_universe": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA"
+  ],
+  "safe_symbol": "SHY",
+  "lookback_months": 12,
+  "current_holding": "IWM",
+  "position": {
+    "symbol": "IWM",
+    "qty": 167.952327633,
+    "avg_entry": 294.72643
+  },
+  "last_rebalance_month": "2026-07",
+  "trailing_returns": {
+    "SPY": 0.1986,
+    "QQQ": 0.2605,
+    "IWM": 0.3566,
+    "EFA": 0.2343,
+    "SHY": 0.0286
+  },
+  "history": []
+}
