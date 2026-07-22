@@ -55,6 +55,7 @@ def build_momentum_report(cfg: MomentumConfig) -> dict:
         "risky_universe": cfg.risky_universe,
         "safe_symbol": cfg.safe_symbol,
         "lookback_months": cfg.lookback_months,
+        "cash_buffer_pct": cfg.cash_buffer_pct,
         "current_holding": held_symbol or state.get("current_holding"),
         "position": position,
         "last_rebalance_month": state.get("last_rebalance_month"),

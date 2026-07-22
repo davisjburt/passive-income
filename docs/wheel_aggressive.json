@@ -76,5 +76,33 @@
       "realized_pnl": 0.0,
       "orphaned": false
     }
-  ]
+  ],
+  "strategy": {
+    "max_wheel_tickers": 6,
+    "per_stock_cap_pct": 0.25,
+    "portfolio_wheel_cap_pct": 0.95,
+    "put": {
+      "otm_pct": [
+        0.02,
+        0.08
+      ],
+      "dte": [
+        7,
+        21
+      ],
+      "min_annual_yield": 0.2
+    },
+    "call": {
+      "otm_above_basis_pct": [
+        0.02,
+        0.05
+      ],
+      "dte": [
+        7,
+        21
+      ],
+      "min_annual_yield": 0.2
+    },
+    "halt_new_puts_drawdown_pct": 0.3
+  }
 }

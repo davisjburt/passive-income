@@ -143,6 +143,25 @@ def build_wheel_report(cfg: WheelConfig) -> dict:
         "option_positions": option_positions,
         "pending_orders": pending,
         "symbols": symbols,
+        # Live strategy parameters, for the dashboard's "how this works"
+        # explanation -- pulled from config so the prose can't drift out of
+        # sync with what the bot is actually configured to do.
+        "strategy": {
+            "max_wheel_tickers": cfg.max_wheel_tickers,
+            "per_stock_cap_pct": cfg.per_stock_cap_pct,
+            "portfolio_wheel_cap_pct": cfg.portfolio_wheel_cap_pct,
+            "put": {
+                "otm_pct": list(cfg.put.band),
+                "dte": list(cfg.put.dte),
+                "min_annual_yield": cfg.put.min_annual_yield,
+            },
+            "call": {
+                "otm_above_basis_pct": list(cfg.call.band),
+                "dte": list(cfg.call.dte),
+                "min_annual_yield": cfg.call.min_annual_yield,
+            },
+            "halt_new_puts_drawdown_pct": cfg.safeguards.halt_new_puts_drawdown_pct,
+        },
     }
 
 

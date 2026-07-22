@@ -216,6 +216,39 @@
 
       #wheel-table, #pending-table, #positions-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+      .explain-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        font-family: inherit;
+        color: inherit;
+        text-align: left;
+      }
+      .explain-toggle h2 { margin: 0; }
+      .explain-chevron { color: var(--muted); font-size: 13px; transition: transform 0.15s; }
+      .explain-content {
+        margin-top: 14px;
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: var(--text);
+      }
+      .explain-content p { margin: 0 0 10px; }
+      .explain-content ol { margin: 0 0 12px; padding-left: 20px; }
+      .explain-content li { margin-bottom: 8px; }
+      .explain-limits {
+        font-size: 12.5px;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+        margin-top: 4px !important;
+      }
+
       .bench-row {
         display: flex;
         gap: 12px;
@@ -276,6 +309,14 @@
           <div class="label">Cash</div>
           <div class="num" id="kpi-cash">—</div>
         </div>
+      </div>
+
+      <div class="card">
+        <button class="explain-toggle" id="explain-toggle">
+          <h2 id="explain-heading">How this strategy works</h2>
+          <span class="explain-chevron" id="explain-chevron">▾</span>
+        </button>
+        <div id="explain-content" class="explain-content" style="display:none"></div>
       </div>
 
       <div class="card" id="benchmark-card" style="display:none">
@@ -357,12 +398,82 @@
         </svg>`;
       }
 
+      // "How this strategy works" — built from live config values (docs/
+      // wheel*.json's `strategy` field, or momentum's own fields) rather than
+      // hardcoded prose, so the numbers can't silently drift out of sync with
+      // what the bot is actually configured to do.
+      function renderWheelExplanation(d) {
+        const s = d.strategy || {};
+        const put = s.put || {};
+        const call = s.call || {};
+        const pct0 = (arr, i) => (arr && arr[i] !== undefined ? (arr[i] * 100).toFixed(0) : "?");
+        const pct1 = (v) => (v !== undefined ? (v * 100).toFixed(0) : "?");
+        $("explain-content").innerHTML = `
+          <p>This account runs the <strong>options wheel</strong> — an income strategy that
+          sells options premium instead of betting on price direction.</p>
+          <ol>
+            <li><strong>Sell a cash-secured put</strong> on a quality stock, struck
+              ${pct0(put.otm_pct, 0)}-${pct0(put.otm_pct, 1)}% below the current price,
+              ${put.dte ? put.dte[0] : "?"}-${put.dte ? put.dte[1] : "?"} days to expiration,
+              only if it clears a ${pct1(put.min_annual_yield)}%+ annualized yield bar.</li>
+            <li>At expiration: if the stock stayed above the strike, the put expires worthless
+              — keep the full premium and sell a new one. If it fell below, the shares get
+              assigned (bought at the strike).</li>
+            <li><strong>Once assigned, sell a covered call</strong>
+              ${pct0(call.otm_above_basis_pct, 0)}-${pct0(call.otm_above_basis_pct, 1)}% above cost basis,
+              ${call.dte ? call.dte[0] : "?"}-${call.dte ? call.dte[1] : "?"} DTE, same
+              ${pct1(call.min_annual_yield)}%+ yield bar.</li>
+            <li>At expiration: if the stock stayed below the call strike, keep the premium and
+              sell another call. If it rose above, the shares get called away (sold at the
+              strike) — the cycle completes and starts over from step 1.</li>
+          </ol>
+          <p class="explain-limits">Risk limits: max ${pct1(s.per_stock_cap_pct)}% of the account in
+            any one stock, max ${pct1(s.portfolio_wheel_cap_pct)}% deployed at once (the rest stays
+            cash), and new puts pause entirely on any stock down ${pct1(s.halt_new_puts_drawdown_pct)}%+
+            from where the bot started trading it. Up to ${s.max_wheel_tickers || "?"} names active
+            at once.</p>`;
+      }
+
+      function renderMomentumExplanation(d) {
+        const universe = (d.risky_universe || []).join(", ");
+        const safe = d.safe_symbol || "the safe asset";
+        const lookback = d.lookback_months || 12;
+        $("explain-content").innerHTML = `
+          <p>This account doesn't trade options — it's a long-only <strong>momentum
+          rotation</strong> strategy that tries to track (and in bad markets, beat) the
+          S&amp;P 500 by sidestepping its worst drawdowns, not by picking winning stocks.</p>
+          <ol>
+            <li><strong>Once a month</strong>, compare the trailing ${lookback}-month total
+              return of ${universe}.</li>
+            <li><strong>Hold whichever performed best</strong> — 100% of the account, never
+              a blend, never options, never leverage.</li>
+            <li><strong>Absolute momentum filter:</strong> only actually hold it if that return
+              also beat ${safe} (a short-term treasury ETF) over the same period. If every
+              candidate is losing to ${safe} — the signature of a real bear market — the whole
+              account moves into ${safe} instead of picking the "least bad" stock ETF.</li>
+            <li>Repeat next month.</li>
+          </ol>
+          <p class="explain-limits">Backtested 2002-2026: roughly tied the S&amp;P 500's long-run
+            return (11.2% vs 11.1% CAGR) while cutting max drawdown roughly in half (-24% vs -51%;
+            -10.6% vs -46.0% across Sep 2007-Mar 2009). It lagged plain S&amp;P 500 buy-and-hold in
+            the shorter, unusually strong 2020-2026 stretch — the honest case for this strategy is
+            crash avoidance, not beating the index every single year.</p>`;
+      }
+
+      $("explain-toggle").addEventListener("click", () => {
+        const content = $("explain-content");
+        const isOpen = content.style.display !== "none";
+        content.style.display = isOpen ? "none" : "block";
+        $("explain-chevron").textContent = isOpen ? "▾" : "▴";
+      });
+
       function renderWheel(d) {
         $("kpi-premium-label").textContent = "Premium collected";
         $("kpi-pnl-label").textContent = "Net option P/L";
         $("wheel-heading").textContent = "Wheel — per symbol";
         $("pending-heading").textContent = "Pending orders";
         $("positions-heading").textContent = "Open option positions";
+        renderWheelExplanation(d);
 
         $("kpi-premium").textContent = money(d.total_premium_collected);
         const pnl = d.total_realized_pnl || 0;
@@ -428,6 +539,7 @@
       // and "Open option positions" becomes the single current holding (see
       // paintMomentumPosition, fed by /api/live once it resolves).
       function renderMomentum(d) {
+        renderMomentumExplanation(d);
         $("kpi-premium-label").textContent = "Current holding";
         $("kpi-premium").textContent = d.current_holding || "CASH";
 
