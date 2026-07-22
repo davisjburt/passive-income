@@ -8,6 +8,7 @@
 // in bot/wheel/config.py so both halves of the pipeline agree on naming.
 
 const BASE = "https://paper-api.alpaca.markets/v2";
+const DATA_BASE = "https://data.alpaca.markets/v2/stocks";
 // OCC option symbol, e.g. "F260710P00013500" -> AAPL, 2026-07-10, put, 13.50
 const OCC = /^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/;
 
@@ -53,11 +54,12 @@ export async function onRequestGet(context) {
   const headers = { "APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret };
 
   try {
-    const [acctR, posR, clockR, ordR] = await Promise.all([
+    const [acctR, posR, clockR, ordR, histR] = await Promise.all([
       fetch(`${BASE}/account`, { headers }),
       fetch(`${BASE}/positions`, { headers }),
       fetch(`${BASE}/clock`, { headers }),
       fetch(`${BASE}/orders?status=open`, { headers }),
+      fetch(`${BASE}/account/portfolio/history?period=1A&timeframe=1D`, { headers }),
     ]);
 
     if (!acctR.ok) {
@@ -117,6 +119,38 @@ export async function onRequestGet(context) {
       }
     }
 
+    // Benchmark vs SPY: this account's total return since it was funded,
+    // against SPY's price return over that same window. Best-effort -- the
+    // dashboard just hides the section if any of this fails.
+    let benchmark = null;
+    try {
+      const hist = histR.ok ? await histR.json() : null;
+      const baseValue = hist ? num(hist.base_value) : 0;
+      const sinceDate = hist?.base_value_asof;
+      if (baseValue && sinceDate) {
+        const [barsR, snapR] = await Promise.all([
+          fetch(
+            `${DATA_BASE}/SPY/bars?timeframe=1Day&feed=iex&adjustment=raw` +
+              `&start=${sinceDate}&end=${new Date().toISOString().slice(0, 10)}&limit=1000`,
+            { headers },
+          ),
+          fetch(`${DATA_BASE}/SPY/snapshot?feed=iex`, { headers }),
+        ]);
+        const bars = barsR.ok ? (await barsR.json()).bars || [] : [];
+        const snap = snapR.ok ? await snapR.json() : null;
+        const spyStart = bars.length ? num(bars[0].c) : 0;
+        const spyNow = num(snap?.latestTrade?.p) || num(snap?.dailyBar?.c) ||
+          (bars.length ? num(bars[bars.length - 1].c) : 0);
+        if (spyStart && spyNow) {
+          benchmark = {
+            since: sinceDate,
+            account_return_pct: ((equity - baseValue) / baseValue) * 100,
+            spy_return_pct: ((spyNow - spyStart) / spyStart) * 100,
+          };
+        }
+      }
+    } catch (_) { /* benchmark is optional overlay, never fail the main response for it */ }
+
     return json({
       generated_at: new Date().toISOString(),
       live: true,
@@ -133,6 +167,7 @@ export async function onRequestGet(context) {
       },
       positions: stockPositions,
       option_positions: optionPositions,
+      benchmark,
     });
   } catch (e) {
     return json({ error: String(e) }, 502);

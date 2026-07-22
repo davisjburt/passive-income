@@ -197,6 +197,8 @@
       .badge.call { background: color-mix(in srgb, var(--neg) 12%, transparent); color: var(--neg); }
       .badge.stock { background: color-mix(in srgb, #888 12%, transparent); color: var(--text); }
       .badge.pending { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #d97706; }
+      .badge.otm { background: color-mix(in srgb, var(--pos) 12%, transparent); color: var(--pos); }
+      .badge.itm { background: color-mix(in srgb, var(--neg) 12%, transparent); color: var(--neg); }
       tr.divider td {
         padding: 6px 0 4px;
         font-size: 10.5px;
@@ -213,6 +215,23 @@
       .spark-cell svg { display: block; margin-left: auto; }
 
       #wheel-table, #pending-table, #positions-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+      .bench-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .bench-stat {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .bench-stat .label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .bench-stat .num { font-size: 20px; font-weight: 650; margin-top: 4px; letter-spacing: -0.01em; }
+      .bench-diff { font-size: 13px; text-align: center; padding-top: 2px; }
+      .bench-diff .muted { color: var(--muted); }
 
       .updated { font-size: 12px; color: var(--muted); margin-top: 28px; text-align: center; }
       .disclaimer { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.5; }
@@ -258,6 +277,11 @@
         </div>
       </div>
 
+      <div class="card" id="benchmark-card" style="display:none">
+        <h2>Performance vs S&amp;P 500</h2>
+        <div id="benchmark-content"></div>
+      </div>
+
       <div class="card">
         <h2>Live prices</h2>
         <div id="prices-table"><div class="empty">Loading…</div></div>
@@ -301,6 +325,8 @@
 
       let wheelSymbols = []; // populated from wheel.json, used to fetch /api/prices
       let currentAccount = localStorage.getItem("wheelAccount") || "default";
+      let latestOptionPositions = []; // from /api/live, used to paint OTM/ITM status
+      let latestPrices = {};          // from /api/prices, keyed by underlying
 
       function wheelFileFor(account) {
         return account === "default" ? "wheel.json" : `wheel_${account}.json`;
@@ -385,23 +411,75 @@
       // on every request, not committed to git) since market_value/unrealized_pl
       // move continuously and would otherwise force a commit + Pages rebuild
       // on nearly every 5-min bot cycle.
-      function renderLivePositions(opts) {
-        if (opts && opts.length) {
-          const rows = opts.map((p) => `<tr>
+      //
+      // Status column: a put is "safe" (OTM, green) while spot stays above the
+      // strike and "at risk" (ITM, red) once it drops to/through it -- the
+      // reverse for a covered call, which wants spot to stay below the strike.
+      // Depends on /api/prices having loaded, so this repaints from both
+      // loadLive() and loadPrices() rather than only whichever runs last.
+      function paintPositions() {
+        const opts = latestOptionPositions;
+        if (!opts || !opts.length) {
+          $("positions-card").style.display = "none";
+          return;
+        }
+        const rows = opts.map((p) => {
+          const spot = latestPrices[p.underlying]?.price;
+          let status = '<span style="color:var(--muted)">—</span>';
+          if (spot) {
+            const otm = p.type === "put" ? spot > p.strike : spot < p.strike;
+            status = `<span class="badge ${otm ? "otm" : "itm"}">${otm ? "OTM" : "ITM"}</span>`;
+          }
+          return `<tr>
             <td class="sym">${p.underlying}</td>
             <td class="${p.type === "put" ? "pos" : "neg"}">${p.type.toUpperCase()}</td>
             <td class="mono">$${p.strike.toFixed(2)}</td>
+            <td class="mono">${spot ? money(spot) : "—"}</td>
+            <td>${status}</td>
             <td class="mono">${p.expiration}</td>
             <td class="mono">${p.qty}</td>
             <td class="mono ${cls(p.unrealized_pl)}">${signed(p.unrealized_pl)}</td>
-          </tr>`).join("");
-          $("positions-table").innerHTML = `<table>
-            <thead><tr><th>Underlying</th><th>Type</th><th>Strike</th><th>Expiry</th><th>Qty</th><th>Unreal. P/L</th></tr></thead>
-            <tbody>${rows}</tbody></table>`;
-          $("positions-card").style.display = "";
-        } else {
-          $("positions-card").style.display = "none";
+          </tr>`;
+        }).join("");
+        $("positions-table").innerHTML = `<table>
+          <thead><tr>
+            <th>Underlying</th><th>Type</th><th>Strike</th><th>Spot</th><th>Status</th>
+            <th>Expiry</th><th>Qty</th><th>Unreal. P/L</th>
+          </tr></thead>
+          <tbody>${rows}</tbody></table>`;
+        $("positions-card").style.display = "";
+      }
+
+      function renderLivePositions(opts) {
+        latestOptionPositions = opts || [];
+        paintPositions();
+      }
+
+      // Performance vs S&P 500 -- this account's total return since it was
+      // funded vs. SPY's price return over the same window (see benchmark
+      // computation in functions/api/live.js).
+      function renderBenchmark(b) {
+        if (!b) {
+          $("benchmark-card").style.display = "none";
+          return;
         }
+        const diff = b.account_return_pct - b.spy_return_pct;
+        const diffWord = diff > 0 ? "ahead of" : diff < 0 ? "behind" : "even with";
+        $("benchmark-content").innerHTML = `
+          <div class="bench-row">
+            <div class="bench-stat">
+              <div class="label">This account</div>
+              <div class="num ${cls(b.account_return_pct)}">${pct(b.account_return_pct)}</div>
+            </div>
+            <div class="bench-stat">
+              <div class="label">S&amp;P 500 (SPY)</div>
+              <div class="num ${cls(b.spy_return_pct)}">${pct(b.spy_return_pct)}</div>
+            </div>
+          </div>
+          <div class="bench-diff ${cls(diff)}">${pct(diff)} ${diffWord} the S&amp;P
+            <span class="muted">· since ${b.since}</span>
+          </div>`;
+        $("benchmark-card").style.display = "";
       }
 
       async function loadWheel() {
@@ -431,6 +509,7 @@
           $("kpi-exposure").textContent = a.exposure_pct.toFixed(1) + "%";
           $("kpi-cash").textContent = money(a.cash);
           renderLivePositions(d.option_positions);
+          renderBenchmark(d.benchmark);
           const open = d.market_open;
           $("dot").className = "dot " + (open ? "open" : "");
           $("market").textContent = open ? "Market open" : "Market closed";
@@ -448,6 +527,8 @@
           if (!res.ok) return;
           const d = await res.json();
           const prices = d.prices || {};
+          latestPrices = prices;
+          paintPositions(); // repaint OTM/ITM status now that spot prices are in
           const rows = wheelSymbols
             .filter((sym) => prices[sym])
             .map((sym) => {
@@ -490,10 +571,13 @@
         // Reset to loading state so stale data from the other account doesn't
         // linger on screen while the new account's data fetches.
         wheelSymbols = [];
+        latestOptionPositions = [];
+        latestPrices = {};
         $("wheel-table").innerHTML = `<div class="empty">Loading…</div>`;
         $("prices-table").innerHTML = `<div class="empty">Loading…</div>`;
         $("pending-card").style.display = "none";
         $("positions-card").style.display = "none";
+        $("benchmark-card").style.display = "none";
         $("equity").textContent = "—";
         $("dayChange").textContent = "—";
         $("kpi-exposure").textContent = "—";
