@@ -40,11 +40,11 @@
     "drawdown_halt_alerted": false
   },
   "SOFI": {
-    "premium_collected": 0.0,
+    "premium_collected": 6.999999999999995,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 17.925,
-    "rolls": 0,
+    "rolls": 1,
     "last_state": "PUT_OPEN",
     "last_exp": "2026-07-31",
     "drawdown_halt_alerted": false

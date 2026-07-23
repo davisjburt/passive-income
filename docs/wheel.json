@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "total_premium_collected": 281.0,
-  "total_realized_pnl": 74.0,
+  "total_premium_collected": 342.0,
+  "total_realized_pnl": 82.0,
   "option_positions": [
     {
       "underlying": "F",
@@ -13,8 +13,8 @@
     {
       "underlying": "SOFI",
       "type": "put",
-      "strike": 16.0,
-      "expiration": "2026-07-31",
+      "strike": 15.0,
+      "expiration": "2026-09-04",
       "qty": -1.0
     },
     {
@@ -58,8 +58,8 @@
     {
       "symbol": "SOFI",
       "state": "PUT_OPEN",
-      "premium_collected": 164.0,
-      "realized_pnl": 53.0,
+      "premium_collected": 225.0,
+      "realized_pnl": 61.0,
       "orphaned": false
     }
   ],
