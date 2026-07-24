@@ -5,8 +5,16 @@ compatibility_date = "2026-06-01"
 # Cloudflare cron triggers run in UTC. Every 5 min during ~US market hours
 # (13-21 UTC covers both EDT and EST). The wheel workflow no-ops if the market
 # is closed and is idempotent against pending orders, so extra pokes are safe.
+#
+# DAY-OF-WEEK IS 1=SUNDAY HERE -- so Mon-Fri is "2-6", NOT the standard cron
+# "1-5". Do not "fix" this back to 1-5: Cloudflare's scheduler reads 1-5 as
+# Sun-Thu, which silently ran this Worker every Sunday (market closed, every
+# dispatch a no-op) and never on Fridays. That went unnoticed from ~2026-06-29
+# until 2026-07-24, with Fridays quietly degraded to GitHub's ~90-min cron.
+# Verify after any change: the Cron Triggers panel in the Cloudflare dashboard
+# shows a "Next:" date -- confirm it lands on a weekday.
 [triggers]
-crons = ["*/5 13-21 * * 1-5"]
+crons = ["*/5 13-21 * * 2-6"]
 
 [observability.logs]
 enabled = false
