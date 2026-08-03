@@ -1,9 +1,34 @@
 {
   "enabled": true,
-  "total_premium_collected": 8127.0,
-  "total_realized_pnl": 8127.0,
-  "option_positions": [],
-  "pending_orders": [],
+  "total_premium_collected": 9732.0,
+  "total_realized_pnl": 9732.0,
+  "option_positions": [
+    {
+      "underlying": "COIN",
+      "type": "call",
+      "strike": 160.0,
+      "expiration": "2026-08-21",
+      "qty": -1.0
+    },
+    {
+      "underlying": "RIOT",
+      "type": "call",
+      "strike": 20.5,
+      "expiration": "2026-08-14",
+      "qty": -11.0
+    }
+  ],
+  "pending_orders": [
+    {
+      "underlying": "SOFI",
+      "type": "call",
+      "strike": 17.5,
+      "expiration": "2026-08-14",
+      "limit": 0.24,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "MARA",
@@ -14,23 +39,23 @@
     },
     {
       "symbol": "RIOT",
-      "state": "LONG_STOCK",
-      "premium_collected": 2134.0,
-      "realized_pnl": 2134.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 3399.0,
+      "realized_pnl": 3399.0,
       "orphaned": false
     },
     {
       "symbol": "SOFI",
-      "state": "LONG_STOCK",
+      "state": "ORDER_PENDING",
       "premium_collected": 1848.0,
       "realized_pnl": 1848.0,
       "orphaned": false
     },
     {
       "symbol": "COIN",
-      "state": "LONG_STOCK",
-      "premium_collected": 1525.0,
-      "realized_pnl": 1525.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 1865.0,
+      "realized_pnl": 1865.0,
       "orphaned": false
     },
     {
