@@ -45,7 +45,7 @@
     "cost_basis": 0.0,
     "entry_price": 0.0,
     "rolls": 0,
-    "last_state": "",
+    "last_state": "CASH",
     "last_exp": "",
     "drawdown_halt_alerted": false
   },
@@ -55,7 +55,7 @@
     "cost_basis": 0.0,
     "entry_price": 0.0,
     "rolls": 0,
-    "last_state": "",
+    "last_state": "CASH",
     "last_exp": "",
     "drawdown_halt_alerted": false
   },
