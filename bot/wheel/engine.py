@@ -319,6 +319,27 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
         if not dry_run and old_state and old_state != state.value:
             _notify_transition(sym, old_state, state.value, led, cfg.account)
 
+        # Record what the broker actually shows this cycle *before* attempting any
+        # action below. Several of the branches `continue` early when no action is
+        # possible (no quote, no put clears the filters, at max names, etc.) -- if
+        # last_state/last_exp were only updated after a successful action, a symbol
+        # that keeps failing those filters would leave last_state stuck on its old
+        # value forever, so next cycle's comparison above would look like a fresh
+        # transition every single time and re-fire the same alert on a loop.
+        led.last_state = state.value
+        if state in (WheelState.PUT_OPEN, WheelState.CALL_OPEN):
+            cur_exp = pv.options.get(sym, {}).get("exp")
+            led.last_exp = cur_exp.isoformat() if cur_exp else ""
+        else:
+            led.last_exp = ""
+        summary["metrics"][sym] = {
+            "state": state.value,
+            "premium_collected": round(led.premium_collected, 2),
+            "cost_basis": round(led.cost_basis, 2),
+            "realized_pnl": round(led.realized_pnl, 2),
+            "rolls": led.rolls,
+        }
+
         if state == WheelState.CASH:
             if not in_universe:
                 continue  # orphaned symbol returned to cash — don't open new positions
@@ -347,7 +368,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
             c, y = pick
             qty = max(1, max_contracts(equity, c.strike, cfg.per_stock_cap_pct,
                                        exposure, cfg.portfolio_wheel_cap_pct))
-            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=qty)
+            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=qty, led=led)
             if not dry_run and not ledger.get(sym).entry_price:
                 # Reference price for the drawdown circuit-breaker on future puts.
                 ledger.get(sym).entry_price = spot
@@ -368,7 +389,7 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                 summary["skipped"].append(f"{sym}: no call meets filters"); continue
             c, y = pick
             call_qty = max(1, int(shr["qty"] // 100))  # one call per 100 shares held
-            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=call_qty)
+            _sell_to_open(trading, c, y, cfg, dry_run, summary, qty=call_qty, led=led)
 
         elif state == WheelState.PUT_OPEN:
             opt_info = pv.options.get(sym, {})
@@ -427,21 +448,6 @@ def run_wheel_cycle(cfg: WheelConfig, dry_run: bool = True) -> dict:
                     summary["skipped"].append(f"{sym}: CALL near ITM but no roll candidate")
             elif not spot:
                 summary["skipped"].append(f"{sym}: no quote for roll check")
-
-        led = ledger.get(sym)
-        led.last_state = state.value  # persist for transition detection next cycle
-        if state in (WheelState.PUT_OPEN, WheelState.CALL_OPEN):
-            cur_exp = pv.options.get(sym, {}).get("exp")
-            led.last_exp = cur_exp.isoformat() if cur_exp else ""
-        else:
-            led.last_exp = ""
-        summary["metrics"][sym] = {
-            "state": state.value,
-            "premium_collected": round(led.premium_collected, 2),
-            "cost_basis": round(led.cost_basis, 2),
-            "realized_pnl": round(led.realized_pnl, 2),
-            "rolls": led.rolls,
-        }
 
     if not dry_run:
         ledger.save()
@@ -636,7 +642,8 @@ def _execute_roll(trading: TradingClient, opt: OptionHistoricalDataClient,
     return True
 
 
-def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, summary, qty: int = 1):
+def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, summary,
+                  qty: int = 1, led: SymbolLedger | None = None):
     limit = round(c.bid * (1 - cfg.safeguards.limit_slippage_pct), 2)
     msg = (f"SELL-TO-OPEN {c.type.upper()} {c.symbol} x{qty} "
            f"strike ${c.strike:.2f} bid ${c.bid:.2f} -> limit ${limit:.2f} "
@@ -650,3 +657,9 @@ def _sell_to_open(trading, c: Contract, yld: float, cfg: WheelConfig, dry_run, s
         time_in_force=TimeInForce.DAY, limit_price=limit))
     log.info("%s -> order %s", msg, order.id)
     summary["actions"].append(msg)
+    if led is not None:
+        # Approximate -- the order may fill at a better price than the limit, but
+        # the limit is the credit actually guaranteed, so it's a safe floor for the
+        # "premium kept" figure shown in notifications until report.py reconciles
+        # against the real fill.
+        led.premium_collected += limit * 100 * qty

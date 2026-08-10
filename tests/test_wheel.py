@@ -245,6 +245,85 @@ def test_alert_returns_false_on_exception(monkeypatch):
     assert engine._alert("hi") is False
 
 
+# ---- run_wheel_cycle: last_state must persist even when no action fires ----
+#
+# The bug: last_state/last_exp used to be written only after a symbol's branch
+# ran to completion, but branches `continue` early whenever no action is
+# possible (no candidate clears the yield filter, no quote, at max names...).
+# A symbol stuck failing those filters forever left its ledger last_state on
+# the old value, so every future cycle re-detected the same "transition" vs.
+# the broker's real state and re-sent the same Telegram alert -- once every
+# 5 minutes, forever, for a symbol that had already genuinely gone to CASH.
+
+def _run_cycle_fixture(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from bot.wheel import engine
+    from bot.wheel.config import Safeguards, WheelConfig
+
+    class _FakeTradingClient:
+        def get_clock(self):
+            return SimpleNamespace(is_open=True)
+
+        def get_account(self):
+            return SimpleNamespace(equity="10000")
+
+        def get_all_positions(self):
+            return []  # broker genuinely shows no open option / no shares
+
+        def get_orders(self, req):
+            return []  # nothing pending
+
+    class _FakeQuote:
+        def __init__(self, bid, ask):
+            self.bid_price, self.ask_price = bid, ask
+
+    class _FakeDataClient:
+        def get_stock_latest_quote(self, req):
+            return {req.symbol_or_symbols: _FakeQuote(19.5, 19.6)}
+
+    class _FakeOptClient:
+        def get_option_chain(self, req):
+            return {}  # no candidates -> CASH branch will `continue` early
+
+    monkeypatch.setattr(engine, "TradingClient", lambda *a, **k: _FakeTradingClient())
+    monkeypatch.setattr(engine, "StockHistoricalDataClient", lambda *a, **k: _FakeDataClient())
+    monkeypatch.setattr(engine, "OptionHistoricalDataClient", lambda *a, **k: _FakeOptClient())
+    monkeypatch.setattr(engine, "ledger_path", lambda account="default": tmp_path / "ledger.json")
+
+    alerts = []
+    monkeypatch.setattr("bot.notify.send_telegram", lambda text: alerts.append(text) or True)
+
+    cfg = WheelConfig(
+        enabled=True, universe=["T"], max_wheel_tickers=5,
+        per_stock_cap_pct=0.5, portfolio_wheel_cap_pct=0.9,
+        put=LegRules(band=(0.10, 0.15), dte=(30, 45), min_annual_yield=0.08),
+        call=LegRules(band=(0.05, 0.10), dte=(30, 45), min_annual_yield=0.08),
+        safeguards=Safeguards(), api_key="x", api_secret="y",
+    )
+    return engine, cfg, alerts
+
+
+def test_stuck_filter_miss_does_not_refire_transition_alert_forever(monkeypatch, tmp_path):
+    engine, cfg, alerts = _run_cycle_fixture(monkeypatch, tmp_path)
+
+    # Seed the ledger as if T had a put open that genuinely expired weeks ago --
+    # old enough that is_suspicious_early_close won't flag the CASH read as stale.
+    old_exp = (date.today() - timedelta(days=30)).isoformat()
+    (tmp_path / "ledger.json").write_text(
+        f'{{"T": {{"last_state": "PUT_OPEN", "last_exp": "{old_exp}"}}}}'
+    )
+
+    engine.run_wheel_cycle(cfg, dry_run=False)
+    assert len(alerts) == 1
+    assert "expired worthless" in alerts[0]
+
+    # Second cycle: broker state hasn't changed (still no put, still no
+    # candidate), so the ledger's last_state must already read CASH -- no
+    # further "transition" to detect, no repeat alert.
+    engine.run_wheel_cycle(cfg, dry_run=False)
+    assert len(alerts) == 1
+
+
 # Market-open/close recap timing (_near_market_close) now lives in
 # scripts/send_recap.py, not engine.py -- see test_recap.py.
 
