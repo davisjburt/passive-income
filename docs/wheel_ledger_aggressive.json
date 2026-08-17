@@ -5,28 +5,28 @@
     "cost_basis": 0.0,
     "entry_price": 12.254999999999999,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-14",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "RIOT": {
-    "premium_collected": 0.0,
+    "premium_collected": 451.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 21.605,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-14",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "SOFI": {
-    "premium_collected": 0.0,
+    "premium_collected": 546.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 17.925,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-14",
+    "last_state": "CASH",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "COIN": {
