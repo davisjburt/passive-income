@@ -1,13 +1,20 @@
 {
   "enabled": true,
-  "total_premium_collected": 12398.0,
-  "total_realized_pnl": 11838.0,
+  "total_premium_collected": 12808.0,
+  "total_realized_pnl": 12248.0,
   "option_positions": [
     {
       "underlying": "COIN",
       "type": "call",
       "strike": 160.0,
       "expiration": "2026-08-21",
+      "qty": -1.0
+    },
+    {
+      "underlying": "NVDA",
+      "type": "put",
+      "strike": 220.0,
+      "expiration": "2026-08-28",
       "qty": -1.0
     },
     {
@@ -50,9 +57,9 @@
     },
     {
       "symbol": "NVDA",
-      "state": "CASH",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0,
+      "state": "PUT_OPEN",
+      "premium_collected": 410.0,
+      "realized_pnl": 410.0,
       "orphaned": false
     },
     {
