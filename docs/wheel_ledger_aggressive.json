@@ -45,8 +45,8 @@
     "cost_basis": 0.0,
     "entry_price": 226.96499999999997,
     "rolls": 0,
-    "last_state": "CASH",
-    "last_exp": "",
+    "last_state": "PUT_OPEN",
+    "last_exp": "2026-08-28",
     "drawdown_halt_alerted": false
   },
   "TSLA": {
