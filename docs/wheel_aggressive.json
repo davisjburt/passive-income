@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "total_premium_collected": 12398.0,
-  "total_realized_pnl": 12398.0,
+  "total_realized_pnl": 11838.0,
   "option_positions": [
     {
       "underlying": "COIN",
@@ -16,13 +16,6 @@
       "strike": 20.5,
       "expiration": "2026-08-28",
       "qty": -11.0
-    },
-    {
-      "underlying": "SOFI",
-      "type": "put",
-      "strike": 18.0,
-      "expiration": "2026-08-28",
-      "qty": -14.0
     }
   ],
   "pending_orders": [],
@@ -43,9 +36,9 @@
     },
     {
       "symbol": "SOFI",
-      "state": "PUT_OPEN",
+      "state": "CASH",
       "premium_collected": 2730.0,
-      "realized_pnl": 2730.0,
+      "realized_pnl": 2170.0,
       "orphaned": false
     },
     {
