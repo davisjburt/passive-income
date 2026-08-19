@@ -91,7 +91,23 @@ def send_telegram(text: str) -> bool:
                 time.sleep(retry_after)
                 continue
             return False
-        except Exception as exc:  # noqa: BLE001 — network hiccups, timeouts, etc.
+        except TimeoutError as exc:
+            # Raised by our own resp.read() below urlopen() -- meaning urlopen()
+            # already finished sending the request and reading response headers
+            # before this timeout hit. The message has very likely already been
+            # delivered; only the confirmation was slow. Retrying here doesn't
+            # complete a failed send, it just fires a second real copy of the
+            # same message -- so report the ambiguous outcome once instead of
+            # hammering out up to _MAX_RETRIES duplicate Telegram messages.
+            # (A timeout during connection setup, before anything is sent,
+            # surfaces as urllib.error.URLError instead and is still retried
+            # safely below.)
+            _last_sent = time.monotonic()
+            log.warning("Telegram send timed out waiting for a response (attempt %d/%d) -- "
+                       "message was likely already delivered; not retrying to avoid "
+                       "sending a duplicate: %s", attempt, _MAX_RETRIES, exc)
+            return False
+        except Exception as exc:  # noqa: BLE001 — network hiccups, DNS, connection refused, etc.
             _last_sent = time.monotonic()
             log.warning("Telegram send failed (attempt %d/%d): %s", attempt, _MAX_RETRIES, exc)
             if attempt < _MAX_RETRIES:
