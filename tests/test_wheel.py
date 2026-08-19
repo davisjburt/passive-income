@@ -223,6 +223,46 @@ def test_notify_trades_empty_is_noop(monkeypatch):
     assert notify.notify_trades([]) is False
 
 
+def test_send_telegram_does_not_resend_on_read_timeout(monkeypatch):
+    """The bug: a read timeout happens in resp.read(), *after* urlopen() has
+    already sent the request -- meaning Telegram very likely already delivered
+    it. The old code retried unconditionally, silently firing up to 4 real
+    duplicate messages before finally reporting failure."""
+    from bot import notify
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "y")
+    calls = []
+
+    def fake_call(method, params, token=None, timeout=15):
+        calls.append(params)
+        raise TimeoutError("The read operation timed out")
+
+    monkeypatch.setattr(notify, "_call", fake_call)
+    assert notify.send_telegram("hi") is False
+    assert len(calls) == 1  # must not retry -- would duplicate an already-sent message
+
+
+def test_send_telegram_retries_on_pre_send_connection_error(monkeypatch):
+    """A failure before the request reaches the server (DNS, connection
+    refused, connect-phase timeout wrapped as URLError, etc.) is genuinely
+    safe to retry -- nothing was delivered yet."""
+    from bot import notify
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "y")
+    monkeypatch.setattr(notify.time, "sleep", lambda s: None)
+    calls = []
+
+    def fake_call(method, params, token=None, timeout=15):
+        calls.append(params)
+        if len(calls) < 3:
+            raise ConnectionError("connection refused")
+        return {"ok": True}
+
+    monkeypatch.setattr(notify, "_call", fake_call)
+    assert notify.send_telegram("hi") is True
+    assert len(calls) == 3
+
+
 def test_alert_returns_true_on_successful_send(monkeypatch):
     from bot.wheel import engine
     monkeypatch.setattr("bot.notify.send_telegram", lambda text: True)
