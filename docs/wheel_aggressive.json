@@ -1,8 +1,15 @@
 {
   "enabled": true,
-  "total_premium_collected": 13808.0,
-  "total_realized_pnl": 13248.0,
+  "total_premium_collected": 14263.0,
+  "total_realized_pnl": 13703.0,
   "option_positions": [
+    {
+      "underlying": "COIN",
+      "type": "put",
+      "strike": 180.0,
+      "expiration": "2026-09-04",
+      "qty": -1.0
+    },
     {
       "underlying": "MARA",
       "type": "call",
@@ -50,9 +57,9 @@
     },
     {
       "symbol": "COIN",
-      "state": "CASH",
-      "premium_collected": 1865.0,
-      "realized_pnl": 1865.0,
+      "state": "PUT_OPEN",
+      "premium_collected": 2320.0,
+      "realized_pnl": 2320.0,
       "orphaned": false
     },
     {

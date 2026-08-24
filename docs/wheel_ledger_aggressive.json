@@ -30,13 +30,13 @@
     "drawdown_halt_alerted": false
   },
   "COIN": {
-    "premium_collected": 0.0,
+    "premium_collected": 434.99999999999994,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 167.5,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-21",
+    "last_state": "CASH",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "NVDA": {
