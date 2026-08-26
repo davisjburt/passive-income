@@ -2,9 +2,10 @@ name: wheel-aggressive
 
 on:
   schedule:
-    # Fallback cron — the Cloudflare Worker is the reliable 5-min trigger.
-    # GitHub cron is best-effort and may be coalesced; keep it as a safety net.
-    - cron: "*/5 13-21 * * 1-5"
+    # Fallback cron — the Cloudflare Worker is the reliable 15-min trigger for
+    # this workflow (see worker/src/index.js: WHEEL_INTERVAL_MIN). GitHub cron
+    # is best-effort and may be coalesced; keep it as a safety net.
+    - cron: "*/15 13-21 * * 1-5"
   workflow_dispatch: {}
 
 concurrency:
