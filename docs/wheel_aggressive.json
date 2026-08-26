@@ -32,7 +32,17 @@
       "qty": -11.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "SOFI",
+      "type": "put",
+      "strike": 18.5,
+      "expiration": "2026-09-04",
+      "limit": 0.46,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "MARA",
@@ -50,7 +60,7 @@
     },
     {
       "symbol": "SOFI",
-      "state": "CASH",
+      "state": "ORDER_PENDING",
       "premium_collected": 2730.0,
       "realized_pnl": 2170.0,
       "orphaned": false
