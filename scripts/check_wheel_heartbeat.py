@@ -27,11 +27,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, for `
 from bot.wheel.accounts import ACCOUNTS  # noqa: E402
 
 REPO = "davisjburt/passive-income"
+RECAP_WORKFLOW = "recap.yml"
 # Every registered account's trading workflow, plus the one shared recap
 # workflow. Derived from bot/wheel/accounts.py so a new account is watched
 # automatically -- nothing to remember to add here.
-WORKFLOWS = [a.workflow for a in ACCOUNTS] + ["recap.yml"]
-STALE_MINUTES = 30  # generous vs. the 5-min dispatch interval to absorb GitHub cron jitter
+WORKFLOWS = [a.workflow for a in ACCOUNTS] + [RECAP_WORKFLOW]
+
+# Per-workflow staleness thresholds, generous vs. each one's actual dispatch
+# interval (see worker/src/index.js) to absorb GitHub cron jitter. The trading
+# workflows are only dispatched every 15 min (positions move on a DTE
+# timescale, not minutes), so they get a looser threshold than recap.yml,
+# which stays on the Worker's every-5-min tick.
+RECAP_STALE_MINUTES = 30   # 6x the 5-min interval
+WHEEL_STALE_MINUTES = 60   # 4x the 15-min interval
+
+
+def _stale_threshold(workflow: str) -> int:
+    return RECAP_STALE_MINUTES if workflow == RECAP_WORKFLOW else WHEEL_STALE_MINUTES
 
 
 def _api_get(path: str) -> dict:
@@ -66,11 +78,12 @@ def main() -> int:
             print(f"{wf}: heartbeat check failed ({exc}) -- treating as OK, will retry next cycle")
             continue
 
+        threshold = _stale_threshold(wf)
         if age is None:
             print(f"{wf}: no runs found at all")
             stale.append((wf, None))
-        elif age > STALE_MINUTES:
-            print(f"{wf}: STALE -- last run {age:.0f}m ago (threshold {STALE_MINUTES}m)")
+        elif age > threshold:
+            print(f"{wf}: STALE -- last run {age:.0f}m ago (threshold {threshold}m)")
             stale.append((wf, age))
         else:
             print(f"{wf}: OK -- last run {age:.0f}m ago")

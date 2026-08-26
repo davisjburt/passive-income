@@ -2,9 +2,12 @@ name = "wheel-cron"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 
-# Cloudflare cron triggers run in UTC. Every 5 min during ~US market hours
-# (13-21 UTC covers both EDT and EST). The wheel workflow no-ops if the market
-# is closed and is idempotent against pending orders, so extra pokes are safe.
+# Cloudflare cron triggers run in UTC. Ticks every 5 min during ~US market
+# hours (13-21 UTC covers both EDT and EST) -- src/index.js decides per tick
+# which workflows are actually due: recap.yml every tick, the wheel/
+# wheel-aggressive trading workflows only every 15 min (see WHEEL_INTERVAL_MIN
+# there). The trading workflows also no-op if the market is closed and are
+# idempotent against pending orders, so extra pokes are safe either way.
 #
 # DAY-OF-WEEK IS 1=SUNDAY HERE -- so Mon-Fri is "2-6", NOT the standard cron
 # "1-5". Do not "fix" this back to 1-5: Cloudflare's scheduler reads 1-5 as
