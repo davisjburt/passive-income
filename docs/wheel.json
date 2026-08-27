@@ -18,17 +18,7 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "F",
-      "type": "put",
-      "strike": 13.5,
-      "expiration": "2026-09-04",
-      "limit": 0.06,
-      "status": "new",
-      "side": "buy"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
@@ -46,7 +36,7 @@
     },
     {
       "symbol": "F",
-      "state": "ORDER_PENDING",
+      "state": "PUT_OPEN",
       "premium_collected": 85.0,
       "realized_pnl": 21.0,
       "orphaned": false
