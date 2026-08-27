@@ -1,15 +1,8 @@
 {
   "enabled": true,
   "total_premium_collected": 354.0,
-  "total_realized_pnl": 94.0,
+  "total_realized_pnl": 86.0,
   "option_positions": [
-    {
-      "underlying": "F",
-      "type": "put",
-      "strike": 13.5,
-      "expiration": "2026-09-04",
-      "qty": -1.0
-    },
     {
       "underlying": "SOFI",
       "type": "put",
@@ -18,7 +11,17 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "F",
+      "type": "put",
+      "strike": 12.5,
+      "expiration": "2026-10-02",
+      "limit": 0.11,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "T",
@@ -36,9 +39,9 @@
     },
     {
       "symbol": "F",
-      "state": "PUT_OPEN",
+      "state": "ORDER_PENDING",
       "premium_collected": 85.0,
-      "realized_pnl": 21.0,
+      "realized_pnl": 13.0,
       "orphaned": false
     },
     {
