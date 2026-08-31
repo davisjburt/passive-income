@@ -32,17 +32,7 @@
       "qty": -9.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "NVDA",
-      "type": "call",
-      "strike": 225.0,
-      "expiration": "2026-09-09",
-      "limit": 2.07,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "MARA",
@@ -74,7 +64,7 @@
     },
     {
       "symbol": "NVDA",
-      "state": "ORDER_PENDING",
+      "state": "CALL_OPEN",
       "premium_collected": 621.0,
       "realized_pnl": 621.0,
       "orphaned": false
