@@ -5,18 +5,18 @@
     "cost_basis": 0.0,
     "entry_price": 12.254999999999999,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-28",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "RIOT": {
-    "premium_collected": 451.0,
+    "premium_collected": 1045.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 21.605,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-08-28",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "SOFI": {
@@ -40,13 +40,13 @@
     "drawdown_halt_alerted": false
   },
   "NVDA": {
-    "premium_collected": 396.0,
+    "premium_collected": 603.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 226.96499999999997,
     "rolls": 0,
-    "last_state": "PUT_OPEN",
-    "last_exp": "2026-08-28",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "TSLA": {
