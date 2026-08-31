@@ -11,27 +11,6 @@
       "qty": -1.0
     },
     {
-      "underlying": "MARA",
-      "type": "call",
-      "strike": 12.0,
-      "expiration": "2026-08-28",
-      "qty": -20.0
-    },
-    {
-      "underlying": "NVDA",
-      "type": "put",
-      "strike": 220.0,
-      "expiration": "2026-08-28",
-      "qty": -1.0
-    },
-    {
-      "underlying": "RIOT",
-      "type": "call",
-      "strike": 20.5,
-      "expiration": "2026-08-28",
-      "qty": -11.0
-    },
-    {
       "underlying": "SOFI",
       "type": "put",
       "strike": 19.0,
@@ -43,14 +22,14 @@
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 4920.0,
       "realized_pnl": 4920.0,
       "orphaned": false
     },
     {
       "symbol": "RIOT",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 3883.0,
       "realized_pnl": 3883.0,
       "orphaned": false
@@ -71,7 +50,7 @@
     },
     {
       "symbol": "NVDA",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 410.0,
       "realized_pnl": 410.0,
       "orphaned": false
