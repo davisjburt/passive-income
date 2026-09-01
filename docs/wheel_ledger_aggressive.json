@@ -40,11 +40,11 @@
     "drawdown_halt_alerted": false
   },
   "NVDA": {
-    "premium_collected": 641.0,
+    "premium_collected": 770.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 226.96499999999997,
-    "rolls": 1,
+    "rolls": 2,
     "last_state": "CALL_OPEN",
     "last_exp": "2026-09-11",
     "drawdown_halt_alerted": false
