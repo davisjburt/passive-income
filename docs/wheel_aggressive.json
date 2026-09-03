@@ -32,11 +32,21 @@
       "qty": -9.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "MARA",
+      "type": "call",
+      "strike": 12.0,
+      "expiration": "2026-09-11",
+      "limit": 0.34,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "LONG_STOCK",
+      "state": "ORDER_PENDING",
       "premium_collected": 4920.0,
       "realized_pnl": 4920.0,
       "orphaned": false
