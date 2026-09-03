@@ -32,14 +32,18 @@ per_stock_cap_pct: 0.25        # 25% per position
 portfolio_wheel_cap_pct: 0.70  # keep 30% cash — never fully deployed on real money
 
 put:
-  otm_pct: [0.10, 0.15]        # 10-15% OTM — meaningful buffer before assignment
+  # Loosened 2026-09-03: at 15%/8%, T/PFE/KEY (low-IV quality names) never
+  # cleared the yield bar and sat permanently idle in CASH -- only F/SOFI
+  # ever traded, capping the account around 28% deployed vs the 70% target.
+  otm_pct: [0.07, 0.12]        # 7-12% OTM (was 10-15%) — more premium, still real buffer
   dte: [30, 45]                # 30-45 DTE — peak theta decay zone
-  min_annual_yield: 0.08       # 8%+ annualized (realistic for quality names)
+  min_annual_yield: 0.05       # 5%+ annualized (was 8% — unrealistic for low-IV names)
 
 call:
-  otm_above_basis_pct: [0.05, 0.10]  # 5-10% above basis — room for stock to run
+  otm_above_basis_pct: [0.04, 0.08]  # 4-8% above basis (was 5-10%)
   dte: [30, 45]
-  min_annual_yield: 0.08
+  min_annual_yield: 0.05             # matches the put side so an assignment on
+                                     # T/PFE/KEY doesn't hit the same wall
 
 safeguards:
   halt_new_puts_drawdown_pct: 0.15   # stop new puts if underlying down 15% from entry
