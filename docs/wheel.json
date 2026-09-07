@@ -11,13 +11,6 @@
       "qty": -1.0
     },
     {
-      "underlying": "SOFI",
-      "type": "put",
-      "strike": 15.0,
-      "expiration": "2026-09-04",
-      "qty": -1.0
-    },
-    {
       "underlying": "T",
       "type": "put",
       "strike": 24.0,
@@ -57,7 +50,7 @@
     },
     {
       "symbol": "SOFI",
-      "state": "PUT_OPEN",
+      "state": "CASH",
       "premium_collected": 225.0,
       "realized_pnl": 61.0,
       "orphaned": false
