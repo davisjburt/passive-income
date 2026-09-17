@@ -25,17 +25,7 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "SOFI",
-      "type": "put",
-      "strike": 16.0,
-      "expiration": "2026-10-23",
-      "limit": 0.6,
-      "status": "new",
-      "side": "buy"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
@@ -67,7 +57,7 @@
     },
     {
       "symbol": "SOFI",
-      "state": "ORDER_PENDING",
+      "state": "PUT_OPEN",
       "premium_collected": 309.0,
       "realized_pnl": 94.0,
       "orphaned": false
