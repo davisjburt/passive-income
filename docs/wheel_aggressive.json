@@ -4,39 +4,11 @@
   "total_realized_pnl": 17926.0,
   "option_positions": [
     {
-      "underlying": "COIN",
-      "type": "put",
-      "strike": 172.5,
-      "expiration": "2026-09-18",
-      "qty": -1.0
-    },
-    {
       "underlying": "MARA",
       "type": "call",
       "strike": 12.0,
       "expiration": "2026-09-25",
       "qty": -20.0
-    },
-    {
-      "underlying": "NVDA",
-      "type": "call",
-      "strike": 225.0,
-      "expiration": "2026-09-18",
-      "qty": -1.0
-    },
-    {
-      "underlying": "RIOT",
-      "type": "call",
-      "strike": 20.5,
-      "expiration": "2026-09-18",
-      "qty": -11.0
-    },
-    {
-      "underlying": "SOFI",
-      "type": "call",
-      "strike": 19.0,
-      "expiration": "2026-09-18",
-      "qty": -9.0
     }
   ],
   "pending_orders": [],
@@ -50,28 +22,28 @@
     },
     {
       "symbol": "RIOT",
-      "state": "CALL_OPEN",
+      "state": "CASH",
       "premium_collected": 4521.0,
       "realized_pnl": 4521.0,
       "orphaned": false
     },
     {
       "symbol": "SOFI",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 3855.0,
       "realized_pnl": 3052.0,
       "orphaned": false
     },
     {
       "symbol": "COIN",
-      "state": "PUT_OPEN",
+      "state": "CASH",
       "premium_collected": 2725.0,
       "realized_pnl": 2725.0,
       "orphaned": false
     },
     {
       "symbol": "NVDA",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 1178.0,
       "realized_pnl": 788.0,
       "orphaned": false
