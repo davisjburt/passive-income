@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "total_premium_collected": 20515.0,
-  "total_realized_pnl": 19322.0,
+  "total_premium_collected": 21883.0,
+  "total_realized_pnl": 19502.0,
   "option_positions": [
     {
       "underlying": "MARA",
@@ -20,7 +20,7 @@
     {
       "underlying": "RIOT",
       "type": "put",
-      "strike": 24.0,
+      "strike": 24.5,
       "expiration": "2026-10-02",
       "qty": -12.0
     },
@@ -44,8 +44,8 @@
     {
       "symbol": "RIOT",
       "state": "PUT_OPEN",
-      "premium_collected": 5469.0,
-      "realized_pnl": 5469.0,
+      "premium_collected": 6837.0,
+      "realized_pnl": 5649.0,
       "orphaned": false
     },
     {
