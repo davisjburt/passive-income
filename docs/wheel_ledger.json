@@ -37,7 +37,7 @@
     "rolls": 0,
     "last_state": "CASH",
     "last_exp": "",
-    "drawdown_halt_alerted": true
+    "drawdown_halt_alerted": false
   },
   "SOFI": {
     "premium_collected": 42.99999999999999,
