@@ -1,12 +1,12 @@
 {
   "MARA": {
-    "premium_collected": 2840.0,
+    "premium_collected": 3656.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 12.254999999999999,
     "rolls": 0,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-09-25",
+    "last_state": "CASH",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "RIOT": {

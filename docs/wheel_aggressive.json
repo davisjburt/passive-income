@@ -1,14 +1,14 @@
 {
   "enabled": true,
-  "total_premium_collected": 22167.0,
-  "total_realized_pnl": 19554.0,
+  "total_premium_collected": 23055.0,
+  "total_realized_pnl": 20442.0,
   "option_positions": [
     {
       "underlying": "MARA",
-      "type": "call",
-      "strike": 12.0,
-      "expiration": "2026-09-25",
-      "qty": -20.0
+      "type": "put",
+      "strike": 11.5,
+      "expiration": "2026-10-09",
+      "qty": -24.0
     },
     {
       "underlying": "NVDA",
@@ -36,9 +36,9 @@
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "CALL_OPEN",
-      "premium_collected": 6840.0,
-      "realized_pnl": 6840.0,
+      "state": "PUT_OPEN",
+      "premium_collected": 7728.0,
+      "realized_pnl": 7728.0,
       "orphaned": false
     },
     {
