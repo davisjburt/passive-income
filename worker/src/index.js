@@ -64,6 +64,30 @@ function workflowsDueAt(scheduledTimeMs) {
     : [RECAP_WORKFLOW];
 }
 
+// Failure alert via Telegram. The Worker has no state, so to avoid a message
+// every 5 min during an outage it only alerts on the first tick of each hour
+// (minute 0). Needs TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID Worker secrets;
+// silently skipped if they aren't set.
+const ALERT_MINUTE = 0;
+
+async function alertFailure(env, scheduledTimeMs, error) {
+  if (new Date(scheduledTimeMs).getUTCMinutes() !== ALERT_MINUTE) return;
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+  const text =
+    "⚠️ wheel-cron Worker: GitHub dispatch failing -- recap/wheel runs will be " +
+    "delayed until fixed (token expired?).\n\n" +
+    String(error).slice(0, 500);
+  try {
+    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text }),
+    });
+  } catch (e) {
+    console.log(`telegram alert failed: ${e}`);
+  }
+}
+
 export default {
   // Cron Trigger entrypoint (see wrangler.toml [triggers]).
   async scheduled(event, env, ctx) {
@@ -71,7 +95,10 @@ export default {
     ctx.waitUntil(
       dispatch(env, workflows)
         .then(() => console.log(`dispatched: ${workflows.join(", ")}`))
-        .catch((e) => console.log(String(e))),
+        .catch(async (e) => {
+          console.log(String(e));
+          await alertFailure(env, event.scheduledTime, e);
+        }),
     );
   },
 
