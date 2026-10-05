@@ -25,17 +25,7 @@
       "qty": -9.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "RIOT",
-      "type": "call",
-      "strike": 24.0,
-      "expiration": "2026-10-16",
-      "limit": 0.12,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "MARA",
@@ -46,7 +36,7 @@
     },
     {
       "symbol": "RIOT",
-      "state": "ORDER_PENDING",
+      "state": "LONG_STOCK",
       "premium_collected": 6837.0,
       "realized_pnl": 5649.0,
       "orphaned": false
