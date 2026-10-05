@@ -18,13 +18,6 @@
       "qty": -1.0
     },
     {
-      "underlying": "RIOT",
-      "type": "put",
-      "strike": 24.5,
-      "expiration": "2026-10-02",
-      "qty": -12.0
-    },
-    {
       "underlying": "SOFI",
       "type": "call",
       "strike": 19.0,
@@ -43,7 +36,7 @@
     },
     {
       "symbol": "RIOT",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 6837.0,
       "realized_pnl": 5649.0,
       "orphaned": false
