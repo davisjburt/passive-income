@@ -2,34 +2,12 @@
   "enabled": true,
   "total_premium_collected": 23055.0,
   "total_realized_pnl": 20442.0,
-  "option_positions": [
-    {
-      "underlying": "MARA",
-      "type": "put",
-      "strike": 11.5,
-      "expiration": "2026-10-09",
-      "qty": -24.0
-    },
-    {
-      "underlying": "NVDA",
-      "type": "call",
-      "strike": 230.0,
-      "expiration": "2026-10-09",
-      "qty": -1.0
-    },
-    {
-      "underlying": "SOFI",
-      "type": "call",
-      "strike": 19.0,
-      "expiration": "2026-10-09",
-      "qty": -9.0
-    }
-  ],
+  "option_positions": [],
   "pending_orders": [],
   "symbols": [
     {
       "symbol": "MARA",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 7728.0,
       "realized_pnl": 7728.0,
       "orphaned": false
@@ -43,7 +21,7 @@
     },
     {
       "symbol": "SOFI",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 4035.0,
       "realized_pnl": 3232.0,
       "orphaned": false
@@ -57,7 +35,7 @@
     },
     {
       "symbol": "NVDA",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 1730.0,
       "realized_pnl": 1108.0,
       "orphaned": false
