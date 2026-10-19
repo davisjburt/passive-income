@@ -16,20 +16,13 @@
       "strike": 15.5,
       "expiration": "2026-11-06",
       "qty": -1.0
-    },
-    {
-      "underlying": "T",
-      "type": "put",
-      "strike": 24.0,
-      "expiration": "2026-10-16",
-      "qty": -1.0
     }
   ],
   "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 66.0,
       "realized_pnl": 34.0,
       "orphaned": false
