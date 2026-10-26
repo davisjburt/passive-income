@@ -16,13 +16,6 @@
       "strike": 11.5,
       "expiration": "2026-10-30",
       "qty": -24.0
-    },
-    {
-      "underlying": "NVDA",
-      "type": "call",
-      "strike": 235.0,
-      "expiration": "2026-10-23",
-      "qty": -1.0
     }
   ],
   "pending_orders": [],
@@ -57,7 +50,7 @@
     },
     {
       "symbol": "NVDA",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 1973.0,
       "realized_pnl": 1351.0,
       "orphaned": false
