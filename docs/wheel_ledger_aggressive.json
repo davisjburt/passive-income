@@ -40,13 +40,13 @@
     "drawdown_halt_alerted": false
   },
   "NVDA": {
-    "premium_collected": 1310.0,
+    "premium_collected": 1536.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 226.96499999999997,
     "rolls": 3,
-    "last_state": "CALL_OPEN",
-    "last_exp": "2026-10-23",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "TSLA": {
