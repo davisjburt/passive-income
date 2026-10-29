@@ -25,7 +25,17 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [],
+  "pending_orders": [
+    {
+      "underlying": "SOFI",
+      "type": "call",
+      "strike": 19.0,
+      "expiration": "2026-11-13",
+      "limit": 0.18,
+      "status": "new",
+      "side": "sell"
+    }
+  ],
   "symbols": [
     {
       "symbol": "MARA",
@@ -43,7 +53,7 @@
     },
     {
       "symbol": "SOFI",
-      "state": "LONG_STOCK",
+      "state": "ORDER_PENDING",
       "premium_collected": 4035.0,
       "realized_pnl": 3232.0,
       "orphaned": false
