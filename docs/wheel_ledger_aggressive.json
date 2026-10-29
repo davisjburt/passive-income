@@ -25,8 +25,8 @@
     "cost_basis": 0.0,
     "entry_price": 17.925,
     "rolls": 1,
-    "last_state": "LONG_STOCK",
-    "last_exp": "",
+    "last_state": "CALL_OPEN",
+    "last_exp": "2026-11-13",
     "drawdown_halt_alerted": false
   },
   "COIN": {

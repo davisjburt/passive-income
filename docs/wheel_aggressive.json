@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "total_premium_collected": 24369.0,
-  "total_realized_pnl": 21756.0,
+  "total_premium_collected": 24531.0,
+  "total_realized_pnl": 21918.0,
   "option_positions": [
     {
       "underlying": "COIN",
@@ -23,19 +23,16 @@
       "strike": 222.5,
       "expiration": "2026-11-06",
       "qty": -1.0
-    }
-  ],
-  "pending_orders": [
+    },
     {
       "underlying": "SOFI",
       "type": "call",
       "strike": 19.0,
       "expiration": "2026-11-13",
-      "limit": 0.18,
-      "status": "new",
-      "side": "sell"
+      "qty": -9.0
     }
   ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "MARA",
@@ -53,9 +50,9 @@
     },
     {
       "symbol": "SOFI",
-      "state": "ORDER_PENDING",
-      "premium_collected": 4035.0,
-      "realized_pnl": 3232.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 4197.0,
+      "realized_pnl": 3394.0,
       "orphaned": false
     },
     {
