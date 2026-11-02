@@ -20,13 +20,13 @@
     "drawdown_halt_alerted": false
   },
   "F": {
-    "premium_collected": 33.0,
+    "premium_collected": 46.0,
     "realized_pnl": 0.0,
     "cost_basis": 0.0,
     "entry_price": 13.895,
     "rolls": 2,
-    "last_state": "PUT_OPEN",
-    "last_exp": "2026-10-30",
+    "last_state": "LONG_STOCK",
+    "last_exp": "",
     "drawdown_halt_alerted": false
   },
   "KEY": {
