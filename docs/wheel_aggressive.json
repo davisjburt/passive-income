@@ -1,8 +1,15 @@
 {
   "enabled": true,
-  "total_premium_collected": 24531.0,
-  "total_realized_pnl": 21918.0,
+  "total_premium_collected": 24677.0,
+  "total_realized_pnl": 22064.0,
   "option_positions": [
+    {
+      "underlying": "COIN",
+      "type": "call",
+      "strike": 170.0,
+      "expiration": "2026-11-20",
+      "qty": -1.0
+    },
     {
       "underlying": "NVDA",
       "type": "call",
@@ -43,9 +50,9 @@
     },
     {
       "symbol": "COIN",
-      "state": "LONG_STOCK",
-      "premium_collected": 3225.0,
-      "realized_pnl": 3225.0,
+      "state": "CALL_OPEN",
+      "premium_collected": 3371.0,
+      "realized_pnl": 3371.0,
       "orphaned": false
     },
     {
