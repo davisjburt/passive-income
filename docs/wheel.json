@@ -4,13 +4,6 @@
   "total_realized_pnl": 188.0,
   "option_positions": [
     {
-      "underlying": "F",
-      "type": "put",
-      "strike": 12.5,
-      "expiration": "2026-10-30",
-      "qty": -1.0
-    },
-    {
       "underlying": "SOFI",
       "type": "put",
       "strike": 15.5,
@@ -43,7 +36,7 @@
     },
     {
       "symbol": "F",
-      "state": "PUT_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 125.0,
       "realized_pnl": 27.0,
       "orphaned": false
