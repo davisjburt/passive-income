@@ -1,13 +1,20 @@
 {
   "enabled": true,
-  "total_premium_collected": 604.0,
-  "total_realized_pnl": 208.0,
+  "total_premium_collected": 619.0,
+  "total_realized_pnl": 223.0,
   "option_positions": [
     {
       "underlying": "F",
       "type": "call",
       "strike": 13.0,
       "expiration": "2026-12-04",
+      "qty": -1.0
+    },
+    {
+      "underlying": "KEY",
+      "type": "put",
+      "strike": 19.0,
+      "expiration": "2026-12-18",
       "qty": -1.0
     },
     {
@@ -25,17 +32,7 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "KEY",
-      "type": "put",
-      "strike": 19.0,
-      "expiration": "2026-12-18",
-      "limit": 0.12,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
@@ -60,9 +57,9 @@
     },
     {
       "symbol": "KEY",
-      "state": "ORDER_PENDING",
-      "premium_collected": 0.0,
-      "realized_pnl": 0.0,
+      "state": "PUT_OPEN",
+      "premium_collected": 15.0,
+      "realized_pnl": 15.0,
       "orphaned": false
     },
     {
