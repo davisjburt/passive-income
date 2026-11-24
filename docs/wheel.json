@@ -25,21 +25,11 @@
       "qty": -1.0
     }
   ],
-  "pending_orders": [
-    {
-      "underlying": "T",
-      "type": "call",
-      "strike": 25.0,
-      "expiration": "2026-12-31",
-      "limit": 0.12,
-      "status": "new",
-      "side": "sell"
-    }
-  ],
+  "pending_orders": [],
   "symbols": [
     {
       "symbol": "T",
-      "state": "ORDER_PENDING",
+      "state": "LONG_STOCK",
       "premium_collected": 88.0,
       "realized_pnl": 56.0,
       "orphaned": false
