@@ -2,15 +2,7 @@
   "enabled": true,
   "total_premium_collected": 24905.0,
   "total_realized_pnl": 22292.0,
-  "option_positions": [
-    {
-      "underlying": "RIOT",
-      "type": "call",
-      "strike": 24.0,
-      "expiration": "2026-11-27",
-      "qty": -12.0
-    }
-  ],
+  "option_positions": [],
   "pending_orders": [],
   "symbols": [
     {
@@ -22,7 +14,7 @@
     },
     {
       "symbol": "RIOT",
-      "state": "CALL_OPEN",
+      "state": "LONG_STOCK",
       "premium_collected": 7065.0,
       "realized_pnl": 5877.0,
       "orphaned": false
